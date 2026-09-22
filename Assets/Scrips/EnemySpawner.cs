@@ -5,8 +5,8 @@ public class EnemySpawner : MonoBehaviour
     [Header("Enemy Prefabs")]
     [SerializeField] private GameObject[] enemyPrefabs;
 
-    [Header("Spawn Point")]
-    [SerializeField] private Transform spawnPoint;
+    [Header("Spawn Points")]
+    [SerializeField] private Transform[] spawnPoints;
 
     [Header("Spawn Settings")]
     [SerializeField] private float spawnInterval = 2f;
@@ -50,7 +50,8 @@ public class EnemySpawner : MonoBehaviour
         }
 
 
-        if (spawnPoint == null)
+        if (spawnPoints == null ||
+            spawnPoints.Length == 0)
         {
             Debug.LogWarning(
                 "ยังไม่ได้ใส่ Spawn Point"
@@ -61,21 +62,40 @@ public class EnemySpawner : MonoBehaviour
 
 
         // สุ่ม Enemy
-        int randomIndex =
+        int randomEnemyIndex =
             Random.Range(
                 0,
                 enemyPrefabs.Length
             );
 
-
         GameObject selectedEnemy =
-            enemyPrefabs[randomIndex];
+            enemyPrefabs[randomEnemyIndex];
+
+
+        // สุ่มจุด Spawn
+        int randomSpawnIndex =
+            Random.Range(
+                0,
+                spawnPoints.Length
+            );
+
+        Transform selectedSpawnPoint =
+            spawnPoints[randomSpawnIndex];
+
+        if (selectedSpawnPoint == null)
+        {
+            Debug.LogWarning(
+                "Spawn Point index " + randomSpawnIndex + " ยังไม่ได้ใส่ Transform"
+            );
+
+            return;
+        }
 
 
         // สร้าง Enemy
         Instantiate(
             selectedEnemy,
-            spawnPoint.position,
+            selectedSpawnPoint.position,
             Quaternion.identity
         );
     }
