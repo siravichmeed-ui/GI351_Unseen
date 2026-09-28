@@ -110,16 +110,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Enemy
   maxHealth: 100
   moveSpeed: 2
+  detectionRange: 8
+  stopDistance: 2
+  attackRange: 2
   wallTag: Wall
-  obstacleCheckDistance: 1.2
-  steerAngleStep: 15
-  maxSteerAngle: 120
+  obstacleCheckDistance: 1
+  losCheckDistance: 15
   enableZigzag: 0
   zigzagFrequency: 3
   zigzagAmplitude: 1
   spriteFacing: 1
   contactDamage: 20
   attackCooldown: 2
+  useAttackAnimation: 1
+  attackTriggerName: Attack
+  attackStateName: Knight_Attack
+  walkStateName: Knight_Walk
   flashDuration: 0.08
 --- !u!70 &2208747974960082558
 CapsuleCollider2D:
@@ -195,7 +201,7 @@ Rigidbody2D:
   m_Mass: 1
   m_LinearDamping: 0
   m_AngularDamping: 0.05
-  m_GravityScale: 1
+  m_GravityScale: 0
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2

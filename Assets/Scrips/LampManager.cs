@@ -9,47 +9,105 @@ public class LampManager : MonoBehaviour
     [Header("Global Light")]
     [SerializeField] private Light2D globalLight;
 
+
+    // =====================================================
+    // PLAYER LIGHT
+    // =====================================================
+
     [Header("Player Light Intensity")]
     [SerializeField] private float playerMaxIntensity = 10f;
     [SerializeField] private float playerMinIntensity = 0f;
+
+
+    [Header("Player Light Radius")]
+    [SerializeField] private float playerMaxRadius = 5f;
+    [SerializeField] private float playerMinRadius = 0f;
+
+
+    // =====================================================
+    // GLOBAL LIGHT
+    // =====================================================
 
     [Header("Global Light Intensity")]
     [SerializeField] private float globalStartIntensity = 0.2f;
     [SerializeField] private float globalMinIntensity = 0.05f;
 
+
+    // =====================================================
+    // LAMP TIME
+    // =====================================================
+
     [Header("Lamp Time")]
     [SerializeField] private float lampDuration = 60f;
+
+
+    // =====================================================
+    // GLOBAL BLACKOUT
+    // =====================================================
 
     [Header("Global Blackout Time")]
     [SerializeField] private float globalFadeDuration = 10f;
 
+
+    // =====================================================
+    // FLICKER
+    // =====================================================
+
     [Header("Flicker")]
     [SerializeField] private float flickerStartPercent = 20f;
+
     [SerializeField] private float flickerMinIntensity = 0.5f;
+
     [SerializeField] private float flickerMaxIntensity = 2f;
+
     [SerializeField] private float flickerSpeed = 15f;
+
+
+    // =====================================================
+    // PRIVATE VARIABLES
+    // =====================================================
 
     private float currentTime;
 
     private bool isFlickering;
+
     private bool isLampOff;
+
     private bool isGlobalFading;
 
     private float globalFadeTimer;
 
 
+    // =====================================================
+    // START
+    // =====================================================
+
     private void Start()
     {
         currentTime = lampDuration;
 
-        // Player Light
+
+        // =================================================
+        // PLAYER LIGHT
+        // =================================================
+
         if (playerLight != null)
         {
+            // ความสว่างคงที่
             playerLight.intensity =
                 playerMaxIntensity;
+
+
+            // เริ่มต้นวงแสงใหญ่สุด
+            playerLight.pointLightOuterRadius =
+                playerMaxRadius;
         }
 
-        // Global Light
+
+        // =================================================
+        // GLOBAL LIGHT
+        // =================================================
+
         if (globalLight != null)
         {
             globalLight.intensity =
@@ -58,11 +116,15 @@ public class LampManager : MonoBehaviour
     }
 
 
+    // =====================================================
+    // UPDATE
+    // =====================================================
+
     private void Update()
     {
-        // =====================================================
+        // =================================================
         // PLAYER LAMP
-        // =====================================================
+        // =================================================
 
         if (!isLampOff)
         {
@@ -70,9 +132,9 @@ public class LampManager : MonoBehaviour
         }
 
 
-        // =====================================================
+        // =================================================
         // GLOBAL BLACKOUT
-        // =====================================================
+        // =================================================
 
         if (isGlobalFading)
         {
@@ -87,10 +149,14 @@ public class LampManager : MonoBehaviour
 
     private void UpdateLamp()
     {
-        currentTime -= Time.deltaTime;
+        currentTime -=
+            Time.deltaTime;
 
 
+        // =================================================
         // หมดเวลา
+        // =================================================
+
         if (currentTime <= 0f)
         {
             currentTime = 0f;
@@ -101,26 +167,39 @@ public class LampManager : MonoBehaviour
         }
 
 
+        // =================================================
         // เปอร์เซ็นต์เวลาที่เหลือ
+        // =================================================
+
         float remainingPercent =
             (currentTime / lampDuration) * 100f;
 
 
+        // =================================================
         // เริ่มกระพริบ
-        if (remainingPercent <= flickerStartPercent)
+        // =================================================
+
+        if (remainingPercent <=
+            flickerStartPercent)
         {
             isFlickering = true;
         }
 
 
-        // อัปเดตแสง
+        // =================================================
+        // UPDATE PLAYER LIGHT
+        // =================================================
+
+        UpdatePlayerLight();
+
+
+        // =================================================
+        // FLICKER
+        // =================================================
+
         if (isFlickering)
         {
             FlickerLight();
-        }
-        else
-        {
-            UpdatePlayerLight();
         }
     }
 
@@ -135,16 +214,40 @@ public class LampManager : MonoBehaviour
             return;
 
 
+        // =================================================
+        // คำนวณสัดส่วนเวลาที่เหลือ
+        // =================================================
+
         float progress =
-            currentTime / lampDuration;
+            currentTime /
+            lampDuration;
 
 
-        playerLight.intensity =
+        progress =
+            Mathf.Clamp01(progress);
+
+
+        // =================================================
+        // ลดขนาดวงแสง
+        //
+        // 100% เวลา = Max Radius
+        // 0% เวลา   = Min Radius
+        // =================================================
+
+        playerLight.pointLightOuterRadius =
             Mathf.Lerp(
-                playerMinIntensity,
-                playerMaxIntensity,
+                playerMinRadius,
+                playerMaxRadius,
                 progress
             );
+
+
+        // =================================================
+        // ความสว่างไม่ลดตามเวลา
+        // =================================================
+
+        playerLight.intensity =
+            playerMaxIntensity;
     }
 
 
@@ -158,23 +261,14 @@ public class LampManager : MonoBehaviour
             return;
 
 
-        float progress =
-            currentTime / lampDuration;
-
-
-        // ความสว่างพื้นฐานที่เหลืออยู่
-        float baseIntensity =
-            Mathf.Lerp(
-                playerMinIntensity,
-                playerMaxIntensity,
-                progress
-            );
-
-
+        // =================================================
         // สุ่มการกระพริบแบบ Smooth
+        // =================================================
+
         float flicker =
             Mathf.PerlinNoise(
-                Time.time * flickerSpeed,
+                Time.time *
+                flickerSpeed,
                 0f
             );
 
@@ -187,9 +281,15 @@ public class LampManager : MonoBehaviour
             );
 
 
+        // =================================================
+        // กระพริบเฉพาะ Intensity
+        //
+        // Radius ยังคงถูกควบคุมโดยเวลา
+        // =================================================
+
         playerLight.intensity =
             Mathf.Min(
-                baseIntensity,
+                playerMaxIntensity,
                 flickerValue
             );
     }
@@ -203,15 +303,28 @@ public class LampManager : MonoBehaviour
     {
         isLampOff = true;
 
-        // ดับ Player Light
+
+        // =================================================
+        // PLAYER LIGHT
+        // =================================================
+
         if (playerLight != null)
         {
+            // ปิดวงแสงจนหมด
+            playerLight.pointLightOuterRadius =
+                playerMinRadius;
+
+
+            // ปิดความสว่าง
             playerLight.intensity =
                 playerMinIntensity;
         }
 
 
-        // เริ่มลด Global Light
+        // =================================================
+        // START GLOBAL LIGHT FADE
+        // =================================================
+
         isGlobalFading = true;
 
         globalFadeTimer = 0f;
@@ -249,13 +362,103 @@ public class LampManager : MonoBehaviour
             );
 
 
+        // =================================================
         // ถึงค่าต่ำสุดแล้ว
+        // =================================================
+
         if (progress >= 1f)
         {
             globalLight.intensity =
                 globalMinIntensity;
 
+
             isGlobalFading = false;
+        }
+    }
+
+
+    // =====================================================
+    // GET REMAINING TIME
+    // =====================================================
+
+    public float GetRemainingTime()
+    {
+        return currentTime;
+    }
+
+
+    // =====================================================
+    // GET REMAINING PERCENT
+    // =====================================================
+
+    public float GetRemainingPercent()
+    {
+        if (lampDuration <= 0f)
+            return 0f;
+
+
+        return
+            (currentTime /
+            lampDuration) *
+            100f;
+    }
+
+
+    // =====================================================
+    // GET LIGHT RADIUS
+    // =====================================================
+
+    public float GetCurrentLightRadius()
+    {
+        if (playerLight == null)
+            return 0f;
+
+
+        return playerLight.pointLightOuterRadius;
+    }
+
+
+    // =====================================================
+    // RESET LAMP
+    // =====================================================
+
+    public void ResetLamp()
+    {
+        currentTime =
+            lampDuration;
+
+
+        isLampOff =
+            false;
+
+
+        isFlickering =
+            false;
+
+
+        isGlobalFading =
+            false;
+
+
+        globalFadeTimer =
+            0f;
+
+
+        if (playerLight != null)
+        {
+            playerLight.intensity =
+                playerMaxIntensity;
+
+
+            playerLight.pointLightOuterRadius =
+                playerMaxRadius;
+        }
+
+
+        if (globalLight != null)
+        {
+            globalLight.intensity =
+                globalStartIntensity;
         }
     }
 }

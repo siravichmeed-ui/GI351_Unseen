@@ -146,16 +146,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Enemy
   maxHealth: 40
   moveSpeed: 4
+  detectionRange: 8
+  stopDistance: 2
+  attackRange: 2
   wallTag: Wall
-  obstacleCheckDistance: 1.2
-  steerAngleStep: 15
-  maxSteerAngle: 120
-  enableZigzag: 1
+  obstacleCheckDistance: 1
+  losCheckDistance: 15
+  enableZigzag: 0
   zigzagFrequency: 3
   zigzagAmplitude: 1
   spriteFacing: 0
   contactDamage: 10
   attackCooldown: 0.5
+  useAttackAnimation: 1
+  attackTriggerName: Attack
+  attackStateName: Skeleton_Attack
+  walkStateName: Skeleton_Walk
   flashDuration: 0.08
 --- !u!95 &8143593246770353381
 Animator:
@@ -194,7 +200,7 @@ Rigidbody2D:
   m_Mass: 1
   m_LinearDamping: 0
   m_AngularDamping: 0.05
-  m_GravityScale: 1
+  m_GravityScale: 0
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2

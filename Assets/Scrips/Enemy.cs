@@ -6,7 +6,9 @@ public class Enemy : MonoBehaviour
     public enum SpriteFacing
     {
         Right,
-        Left
+        Left,
+        Up,
+        Down
     }
 
     private enum MoveState
@@ -15,90 +17,239 @@ public class Enemy : MonoBehaviour
         WallFollowing
     }
 
+
+    // =====================================================
+    // HEALTH
+    // =====================================================
+
     [Header("Health")]
     [SerializeField] private float maxHealth = 50f;
+
+
+    // =====================================================
+    // MOVEMENT
+    // =====================================================
 
     [Header("Movement")]
     [SerializeField] private float moveSpeed = 2f;
 
+
+    // =====================================================
+    // PLAYER DETECTION
+    // =====================================================
+
+    [Header("Player Detection")]
+    [SerializeField] private float detectionRange = 8f;
+
+
+    // =====================================================
+    // COMBAT DISTANCE
+    // =====================================================
+
+    [Header("Combat Distance")]
+    [SerializeField] private float stopDistance = 1.5f;
+
+    [SerializeField] private float attackRange = 2f;
+
+
+    // =====================================================
+    // OBSTACLE AVOIDANCE
+    // =====================================================
+
     [Header("Obstacle Avoidance")]
     [SerializeField] private string wallTag = "Wall";
+
     [SerializeField] private float obstacleCheckDistance = 1f;
-    [Tooltip("ระยะไกลสุดที่เช็คว่ามองเห็นผู้เล่นตรงๆ ได้ไหม (ไม่มีกำแพงบัง) เพื่อตัดสินใจเลิกเกาะกำแพงแล้วพุ่งหาผู้เล่นต่อ")]
+
     [SerializeField] private float losCheckDistance = 15f;
+
+
+    // =====================================================
+    // ZIGZAG
+    // =====================================================
 
     [Header("Zigzag Movement")]
     [SerializeField] private bool enableZigzag = false;
+
     [SerializeField] private float zigzagFrequency = 3f;
+
     [SerializeField] private float zigzagAmplitude = 1f;
 
+
+    // =====================================================
+    // SPRITE
+    // =====================================================
+
     [Header("Sprite")]
-    [SerializeField] private SpriteFacing spriteFacing = SpriteFacing.Right;
+    [SerializeField]
+    private SpriteFacing spriteFacing =
+        SpriteFacing.Right;
+
+
+    // =====================================================
+    // ATTACK
+    // =====================================================
 
     [Header("Attack")]
     [SerializeField] private float contactDamage = 10f;
+
     [SerializeField] private float attackCooldown = 1f;
+
+
+    // =====================================================
+    // ATTACK ANIMATION
+    // =====================================================
+
+    [Header("Attack Animation")]
+    [SerializeField] private bool useAttackAnimation = true;
+
+    [SerializeField] private string attackTriggerName = "Attack";
+
+    [SerializeField] private string attackStateName = "Knight_Attack";
+
+    [SerializeField] private string walkStateName = "Knight_Walk";
+
+
+    // =====================================================
+    // HIT FLASH
+    // =====================================================
 
     [Header("Hit Flash")]
     [SerializeField] private float flashDuration = 0.08f;
 
+
+    // =====================================================
+    // PRIVATE VARIABLES
+    // =====================================================
+
     private float currentHealth;
+
     private float nextAttackTime;
 
     private Transform player;
+
     private SpriteRenderer spriteRenderer;
+
     private Rigidbody2D rb;
+
+    private Animator animator;
 
     private Coroutine hitFlashCoroutine;
 
-    // ใช้ offset สุ่มต่อตัว กัน enemy หลายตัวซิกแซกพร้อมกันเป๊ะๆ
     private float zigzagOffset;
 
-    // สถานะการเดิน + ทิศที่เดินล่าสุด (ใช้สืบต่อการเกาะกำแพง)
-    private MoveState moveState = MoveState.Chasing;
-    private float wallFollowSign = 1f;
-    private Vector2 lastMoveDirection = Vector2.right;
+    private MoveState moveState =
+        MoveState.Chasing;
 
+    private float wallFollowSign = 1f;
+
+    private Vector2 lastMoveDirection =
+        Vector2.right;
+
+    private EnemyLightZone currentLightZone;
+
+
+    // =====================================================
+    // DETECTION STATE
+    // =====================================================
+
+    private bool hasDetectedPlayer = false;
+
+
+    // =====================================================
+    // ATTACK STATE
+    // =====================================================
+
+    private bool isAttacking = false;
+
+    private bool hasAttackHit = false;
+
+
+    // =====================================================
+    // START
+    // =====================================================
 
     private void Start()
     {
-        currentHealth = maxHealth;
+        currentHealth =
+            maxHealth;
+
 
         spriteRenderer =
             GetComponentInChildren<SpriteRenderer>();
 
-        rb = GetComponent<Rigidbody2D>();
+
+        rb =
+            GetComponent<Rigidbody2D>();
+
+
+        animator =
+            GetComponentInChildren<Animator>();
+
 
         if (rb == null)
         {
             Debug.LogWarning(
-                "Enemy ต้องมี Rigidbody2D (Body Type = Dynamic) ไม่งั้นจะทะลุ Wall และไม่ขยับ"
+                gameObject.name +
+                " ไม่มี Rigidbody2D"
             );
         }
 
-        zigzagOffset = Random.Range(0f, 100f);
+
+        if (animator == null &&
+            useAttackAnimation)
+        {
+            Debug.LogWarning(
+                gameObject.name +
+                " ไม่มี Animator"
+            );
+        }
+
+
+        zigzagOffset =
+            Random.Range(
+                0f,
+                100f
+            );
+
 
         GameObject playerObject =
-            GameObject.FindGameObjectWithTag("Player");
+            GameObject.FindGameObjectWithTag(
+                "Player"
+            );
+
 
         if (playerObject != null)
         {
-            player = playerObject.transform;
+            player =
+                playerObject.transform;
         }
         else
         {
             Debug.LogWarning(
-                "หา GameObject ที่มี Tag 'Player' ไม่เจอ"
+                "หา GameObject ที่มี Tag Player ไม่เจอ"
             );
         }
     }
 
 
+    // =====================================================
+    // UPDATE
+    // =====================================================
+
     private void Update()
     {
+        DetectPlayer();
+
         FacePlayer();
+
+        CheckAttackRange();
     }
 
+
+    // =====================================================
+    // FIXED UPDATE
+    // =====================================================
 
     private void FixedUpdate()
     {
@@ -107,47 +258,202 @@ public class Enemy : MonoBehaviour
 
 
     // =====================================================
-    // MOVEMENT
+    // DETECT PLAYER
     // =====================================================
 
-    private void MoveTowardsPlayer()
+    private void DetectPlayer()
     {
-        if (player == null || rb == null)
+        if (player == null)
             return;
 
-        Vector2 toPlayer =
-            player.position - transform.position;
 
-        float distanceToPlayer = toPlayer.magnitude;
-
-        if (distanceToPlayer <= 0.05f)
-        {
-            rb.linearVelocity = Vector2.zero;
+        if (hasDetectedPlayer)
             return;
-        }
 
-        Vector2 desiredDirection = toPlayer / distanceToPlayer;
 
-        // ตัดสินใจว่าจะพุ่งตรงหาผู้เล่น หรือเกาะกำแพงไถลไปก่อน
-        Vector2 finalDirection =
-            GetMoveDirection(desiredDirection, distanceToPlayer);
+        float distanceToPlayer =
+            Vector2.Distance(
+                transform.position,
+                player.position
+            );
 
-        // ซิกแซกใช้เฉพาะตอนพุ่งตรงหาผู้เล่นเท่านั้น กันสั่นตอนเกาะกำแพง
-        if (enableZigzag && moveState == MoveState.Chasing)
+
+        if (distanceToPlayer <=
+            detectionRange)
         {
-            finalDirection =
-                ApplyZigzag(finalDirection);
+            hasDetectedPlayer =
+                true;
+
+
+            Debug.Log(
+                gameObject.name +
+                " detected Player!"
+            );
         }
-
-        lastMoveDirection = finalDirection;
-
-        rb.linearVelocity =
-            finalDirection * moveSpeed;
     }
 
 
     // =====================================================
-    // STATE: CHASING vs WALL FOLLOWING
+    // MOVE
+    // =====================================================
+
+    private void MoveTowardsPlayer()
+    {
+        if (player == null ||
+            rb == null)
+        {
+            return;
+        }
+
+
+        if (!hasDetectedPlayer)
+        {
+            rb.linearVelocity =
+                Vector2.zero;
+
+            return;
+        }
+
+
+        // ขณะ Attack ห้ามเดิน
+        if (isAttacking)
+        {
+            rb.linearVelocity =
+                Vector2.zero;
+
+            return;
+        }
+
+
+        Vector2 toPlayer =
+            player.position -
+            transform.position;
+
+
+        float distanceToPlayer =
+            toPlayer.magnitude;
+
+
+        // ถึงระยะหยุด
+        if (distanceToPlayer <=
+            stopDistance)
+        {
+            rb.linearVelocity =
+                Vector2.zero;
+
+            return;
+        }
+
+
+        Vector2 desiredDirection =
+            toPlayer.normalized;
+
+
+        Vector2 finalDirection =
+            GetMoveDirection(
+                desiredDirection,
+                distanceToPlayer
+            );
+
+
+        if (enableZigzag &&
+            moveState ==
+            MoveState.Chasing)
+        {
+            finalDirection =
+                ApplyZigzag(
+                    finalDirection
+                );
+        }
+
+
+        EnemyLightZone lightZone =
+            EnemyLightZone.Instance;
+
+
+        if (lightZone != null)
+        {
+            Vector2 nextPosition =
+                rb.position +
+                finalDirection *
+                moveSpeed *
+                Time.fixedDeltaTime;
+
+
+            bool blocked =
+                lightZone.ShouldBlockPosition(
+                    this,
+                    rb.position,
+                    nextPosition
+                );
+
+
+            if (blocked)
+            {
+                rb.linearVelocity =
+                    Vector2.zero;
+
+                return;
+            }
+        }
+
+
+        lastMoveDirection =
+            finalDirection;
+
+
+        rb.linearVelocity =
+            finalDirection *
+            moveSpeed;
+    }
+
+
+    // =====================================================
+    // ATTACK RANGE
+    // =====================================================
+
+    private void CheckAttackRange()
+    {
+        if (player == null)
+            return;
+
+
+        if (!hasDetectedPlayer)
+            return;
+
+
+        // ถ้ากำลัง Attack อยู่
+        // ห้ามเริ่ม Attack ซ้ำ
+        if (isAttacking)
+            return;
+
+
+        if (Time.time <
+            nextAttackTime)
+        {
+            return;
+        }
+
+
+        float distanceToPlayer =
+            Vector2.Distance(
+                transform.position,
+                player.position
+            );
+
+
+        if (distanceToPlayer <=
+            attackRange)
+        {
+            TryAttack(
+                player.gameObject
+            );
+        }
+    }
+
+
+    // =====================================================
+    // GET MOVE DIRECTION
     // =====================================================
 
     private Vector2 GetMoveDirection(
@@ -156,7 +462,11 @@ public class Enemy : MonoBehaviour
     )
     {
         float losDistance =
-            Mathf.Min(distanceToPlayer, losCheckDistance);
+            Mathf.Min(
+                distanceToPlayer,
+                losCheckDistance
+            );
+
 
         RaycastHit2D losHit =
             Physics2D.Raycast(
@@ -165,39 +475,71 @@ public class Enemy : MonoBehaviour
                 losDistance
             );
 
+
         bool pathBlocked =
             losHit.collider != null &&
-            losHit.collider.CompareTag(wallTag);
+            losHit.collider.CompareTag(
+                wallTag
+            );
 
-        // มองเห็นผู้เล่นตรงๆ ไม่มีกำแพงบัง พุ่งตรงได้เลย
+
         if (!pathBlocked)
         {
-            moveState = MoveState.Chasing;
-            return AvoidImmediateWall(desiredDirection);
+            moveState =
+                MoveState.Chasing;
+
+
+            return AvoidImmediateWall(
+                desiredDirection
+            );
         }
 
-        // เพิ่งเจอกำแพงบังครั้งแรก เลือกฝั่งที่จะเกาะไถล แล้วยึดฝั่งนั้นไว้ตลอด
-        if (moveState == MoveState.Chasing)
+
+        if (moveState ==
+            MoveState.Chasing)
         {
-            Vector2 normal = losHit.normal;
+            Vector2 normal =
+                losHit.normal;
+
 
             Vector2 tangentA =
-                new Vector2(-normal.y, normal.x);
+                new Vector2(
+                    -normal.y,
+                    normal.x
+                );
+
 
             float dotA =
-                Vector2.Dot(tangentA, desiredDirection);
+                Vector2.Dot(
+                    tangentA,
+                    desiredDirection
+                );
 
-            wallFollowSign = dotA >= 0f ? 1f : -1f;
 
-            moveState = MoveState.WallFollowing;
+            wallFollowSign =
+                dotA >= 0f
+                    ? 1f
+                    : -1f;
+
+
+            moveState =
+                MoveState.WallFollowing;
         }
 
-        return FollowWall(desiredDirection);
+
+        return FollowWall(
+            desiredDirection
+        );
     }
 
 
-    // เดินตรงแบบปกติ แต่ยังกันชนกำแพงระยะประชิดไว้เผื่อกรณีเพิ่งเลี้ยวกลับมา
-    private Vector2 AvoidImmediateWall(Vector2 desiredDirection)
+    // =====================================================
+    // AVOID WALL
+    // =====================================================
+
+    private Vector2 AvoidImmediateWall(
+        Vector2 desiredDirection
+    )
     {
         RaycastHit2D hit =
             Physics2D.Raycast(
@@ -206,28 +548,47 @@ public class Enemy : MonoBehaviour
                 obstacleCheckDistance
             );
 
+
         if (hit.collider == null ||
-            !hit.collider.CompareTag(wallTag))
+            !hit.collider.CompareTag(
+                wallTag
+            ))
         {
             return desiredDirection;
         }
 
+
         Vector2 slideDirection =
             desiredDirection -
-            Vector2.Dot(desiredDirection, hit.normal) * hit.normal;
+            Vector2.Dot(
+                desiredDirection,
+                hit.normal
+            ) *
+            hit.normal;
 
-        if (slideDirection.sqrMagnitude < 0.0001f)
+
+        if (slideDirection.sqrMagnitude <
+            0.0001f)
         {
             slideDirection =
-                new Vector2(-hit.normal.y, hit.normal.x);
+                new Vector2(
+                    -hit.normal.y,
+                    hit.normal.x
+                );
         }
+
 
         return slideDirection.normalized;
     }
 
 
-    // เกาะผนังไถลไปทางเดียวกันตลอด (ตาม wallFollowSign) จนกว่าจะเจอทางโล่ง
-    private Vector2 FollowWall(Vector2 desiredDirection)
+    // =====================================================
+    // FOLLOW WALL
+    // =====================================================
+
+    private Vector2 FollowWall(
+        Vector2 desiredDirection
+    )
     {
         RaycastHit2D hit =
             Physics2D.Raycast(
@@ -236,10 +597,12 @@ public class Enemy : MonoBehaviour
                 obstacleCheckDistance
             );
 
+
         if (hit.collider == null ||
-            !hit.collider.CompareTag(wallTag))
+            !hit.collider.CompareTag(
+                wallTag
+            ))
         {
-            // ไม่เจอกำแพงตรงหน้าแล้ว ลองเช็คจากทิศที่เดินล่าสุดแทน เพื่อยังคงเกาะผนังต่อ
             hit =
                 Physics2D.Raycast(
                     transform.position,
@@ -248,57 +611,92 @@ public class Enemy : MonoBehaviour
                 );
         }
 
+
         if (hit.collider == null ||
-            !hit.collider.CompareTag(wallTag))
+            !hit.collider.CompareTag(
+                wallTag
+            ))
         {
-            // ไม่มีกำแพงใกล้ๆ เลย ปลอดภัยพอจะกลับไปพุ่งตรงหาผู้เล่น
-            moveState = MoveState.Chasing;
+            moveState =
+                MoveState.Chasing;
+
+
             return desiredDirection;
         }
 
+
         Vector2 tangent =
             wallFollowSign *
-            new Vector2(-hit.normal.y, hit.normal.x);
+            new Vector2(
+                -hit.normal.y,
+                hit.normal.x
+            );
 
-        // เช็คว่าทิศไถลนี้ยังโดนกำแพงบังอยู่ไหม (เช่นเจอมุมเหลี่ยม) ถ้าใช่ให้โค้งตามผิวกำแพงเพิ่ม
+
         RaycastHit2D tangentHit =
             Physics2D.Raycast(
                 transform.position,
                 tangent,
-                obstacleCheckDistance * 0.5f
+                obstacleCheckDistance *
+                0.5f
             );
 
+
         if (tangentHit.collider != null &&
-            tangentHit.collider.CompareTag(wallTag))
+            tangentHit.collider.CompareTag(
+                wallTag
+            ))
         {
             tangent =
-                (tangent + hit.normal * 0.5f).normalized;
+                (
+                    tangent +
+                    hit.normal * 0.5f
+                ).normalized;
         }
+
 
         return tangent;
     }
 
 
     // =====================================================
-    // ZIGZAG MOVEMENT
+    // ZIGZAG
     // =====================================================
 
-    private Vector2 ApplyZigzag(Vector2 direction)
+    private Vector2 ApplyZigzag(
+        Vector2 direction
+    )
     {
-        if (direction.sqrMagnitude < 0.0001f)
+        if (direction.sqrMagnitude <
+            0.0001f)
+        {
             return direction;
+        }
 
-        // แกนตั้งฉากกับทิศที่เดิน ใช้เป็นแกนส่าย
+
         Vector2 perpendicular =
-            new Vector2(-direction.y, direction.x);
+            new Vector2(
+                -direction.y,
+                direction.x
+            );
+
 
         float sway =
             Mathf.Sin(
-                (Time.time + zigzagOffset) * zigzagFrequency
-            ) * zigzagAmplitude;
+                (
+                    Time.time +
+                    zigzagOffset
+                ) *
+                zigzagFrequency
+            ) *
+            zigzagAmplitude;
+
 
         Vector2 zigzagDirection =
-            direction + perpendicular * sway;
+            direction +
+            perpendicular *
+            sway;
+
 
         return zigzagDirection.normalized;
     }
@@ -313,55 +711,312 @@ public class Enemy : MonoBehaviour
         if (player == null)
             return;
 
+
         if (spriteRenderer == null)
             return;
+
+
+        if (!hasDetectedPlayer)
+            return;
+
 
         float directionX =
             player.position.x -
             transform.position.x;
 
-        if (Mathf.Abs(directionX) <= 0.01f)
-            return;
 
-
-        // Sprite ต้นฉบับหันขวา
-        if (spriteFacing == SpriteFacing.Right)
+        if (Mathf.Abs(directionX) <=
+            0.01f)
         {
-            if (directionX > 0f)
-            {
-                spriteRenderer.flipX = false;
-            }
-            else
-            {
-                spriteRenderer.flipX = true;
-            }
+            return;
         }
 
-        // Sprite ต้นฉบับหันซ้าย
+
+        if (spriteFacing ==
+            SpriteFacing.Right)
+        {
+            spriteRenderer.flipX =
+                directionX < 0f;
+        }
+        else if (
+            spriteFacing ==
+            SpriteFacing.Left)
+        {
+            spriteRenderer.flipX =
+                directionX > 0f;
+        }
         else
         {
-            if (directionX < 0f)
-            {
-                spriteRenderer.flipX = false;
-            }
-            else
-            {
-                spriteRenderer.flipX = true;
-            }
+            spriteRenderer.flipX =
+                false;
         }
     }
 
 
     // =====================================================
-    // HEALTH
+    // TRY ATTACK
     // =====================================================
 
-    public void TakeDamage(float damage)
+    private void TryAttack(
+        GameObject target
+    )
+    {
+        if (target == null)
+            return;
+
+
+        if (isAttacking)
+            return;
+
+
+        if (Time.time <
+            nextAttackTime)
+        {
+            return;
+        }
+
+
+        PlayerController playerController =
+            target.GetComponent<PlayerController>();
+
+
+        if (playerController == null)
+            return;
+
+
+        float distanceToPlayer =
+            Vector2.Distance(
+                transform.position,
+                target.transform.position
+            );
+
+
+        // ต้องอยู่ในระยะตอน "เริ่มตี"
+        if (distanceToPlayer >
+            attackRange)
+        {
+            return;
+        }
+
+
+        if (useAttackAnimation &&
+            animator != null)
+        {
+            StartAttack();
+        }
+        else
+        {
+            DealDamage(
+                playerController
+            );
+
+
+            nextAttackTime =
+                Time.time +
+                attackCooldown;
+        }
+    }
+
+
+    // =====================================================
+    // START ATTACK
+    // =====================================================
+
+    private void StartAttack()
+    {
+        isAttacking =
+            true;
+
+
+        hasAttackHit =
+            false;
+
+
+        if (rb != null)
+        {
+            rb.linearVelocity =
+                Vector2.zero;
+        }
+
+
+        animator.ResetTrigger(
+            attackTriggerName
+        );
+
+
+        animator.SetTrigger(
+            attackTriggerName
+        );
+    }
+
+
+    // =====================================================
+    // ANIMATION EVENT
+    // =====================================================
+
+    public void AttackHit()
+    {
+        if (!isAttacking)
+            return;
+
+
+        if (hasAttackHit)
+            return;
+
+
+        if (player == null)
+            return;
+
+
+        // =================================================
+        // เช็ก Player ตอน "ดาบฟัน"
+        // =================================================
+
+        float distanceToPlayer =
+            Vector2.Distance(
+                transform.position,
+                player.position
+            );
+
+
+        // ถ้าตอนดาบฟัน Player อยู่ไกล
+        // ไม่ Damage
+        if (distanceToPlayer >
+            attackRange)
+        {
+            return;
+        }
+
+
+        PlayerController playerController =
+            player.GetComponent<PlayerController>();
+
+
+        if (playerController == null)
+            return;
+
+
+        DealDamage(
+            playerController
+        );
+
+
+        hasAttackHit =
+            true;
+    }
+
+
+    // =====================================================
+    // ATTACK FINISHED
+    // =====================================================
+
+    public void AttackFinished()
+    {
+        if (!isAttacking)
+            return;
+
+
+        FinishAttack();
+    }
+
+
+    // =====================================================
+    // DEAL DAMAGE
+    // =====================================================
+
+    private void DealDamage(
+        PlayerController playerController
+    )
+    {
+        if (playerController == null)
+            return;
+
+
+        if (player == null)
+            return;
+
+
+        Vector2 knockbackDirection =
+            player.position -
+            transform.position;
+
+
+        playerController.TakeDamage(
+            contactDamage,
+            knockbackDirection
+        );
+
+
+        Debug.Log(
+            gameObject.name +
+            " attacked Player for " +
+            contactDamage +
+            " damage"
+        );
+    }
+
+
+    // =====================================================
+    // FINISH ATTACK
+    // =====================================================
+
+    private void FinishAttack()
+    {
+        isAttacking =
+            false;
+
+
+        hasAttackHit =
+            false;
+
+
+        nextAttackTime =
+            Time.time +
+            attackCooldown;
+
+
+        PlayWalkAnimation();
+    }
+
+
+    // =====================================================
+    // PLAY WALK
+    // =====================================================
+
+    private void PlayWalkAnimation()
+    {
+        if (animator == null)
+            return;
+
+
+        animator.ResetTrigger(
+            attackTriggerName
+        );
+
+
+        animator.CrossFade(
+            walkStateName,
+            0.05f,
+            0
+        );
+    }
+
+
+    // =====================================================
+    // TAKE DAMAGE
+    // =====================================================
+
+    public void TakeDamage(
+        float damage
+    )
     {
         if (damage <= 0f)
             return;
 
-        currentHealth -= damage;
+
+        currentHealth -=
+            damage;
+
 
         currentHealth =
             Mathf.Clamp(
@@ -370,6 +1025,7 @@ public class Enemy : MonoBehaviour
                 maxHealth
             );
 
+
         Debug.Log(
             "Enemy HP: " +
             currentHealth +
@@ -377,13 +1033,20 @@ public class Enemy : MonoBehaviour
             maxHealth
         );
 
+
         if (hitFlashCoroutine != null)
         {
-            StopCoroutine(hitFlashCoroutine);
+            StopCoroutine(
+                hitFlashCoroutine
+            );
         }
 
+
         hitFlashCoroutine =
-            StartCoroutine(HitFlash());
+            StartCoroutine(
+                HitFlash()
+            );
+
 
         if (currentHealth <= 0f)
         {
@@ -401,30 +1064,72 @@ public class Enemy : MonoBehaviour
         if (spriteRenderer == null)
             yield break;
 
-        spriteRenderer.color = Color.red;
+
+        spriteRenderer.color =
+            Color.red;
+
 
         yield return new WaitForSeconds(
             flashDuration
         );
 
-        spriteRenderer.color = Color.white;
 
-        hitFlashCoroutine = null;
+        spriteRenderer.color =
+            Color.white;
+
+
+        hitFlashCoroutine =
+            null;
     }
 
 
     // =====================================================
-    // ATTACK PLAYER
+    // LIGHT ZONE
+    // =====================================================
+
+    public void EnterLightZone(
+        EnemyLightZone lightZone
+    )
+    {
+        if (lightZone == null)
+            return;
+
+
+        currentLightZone =
+            lightZone;
+    }
+
+
+    public void ExitLightZone(
+        EnemyLightZone lightZone
+    )
+    {
+        if (currentLightZone ==
+            lightZone)
+        {
+            currentLightZone =
+                null;
+        }
+    }
+
+
+    // =====================================================
+    // COLLISION
     // =====================================================
 
     private void OnCollisionEnter2D(
         Collision2D collision
     )
     {
-        if (!collision.gameObject.CompareTag("Player"))
+        if (!collision.gameObject.CompareTag(
+            "Player"
+        ))
+        {
             return;
+        }
 
-        TryAttack(collision.gameObject);
+        // ไม่ Damage จาก Collision
+        // Damage ใช้ AttackHit()
     }
 
 
@@ -432,44 +1137,63 @@ public class Enemy : MonoBehaviour
         Collision2D collision
     )
     {
-        if (!collision.gameObject.CompareTag("Player"))
+        if (!collision.gameObject.CompareTag(
+            "Player"
+        ))
+        {
             return;
+        }
 
-        TryAttack(collision.gameObject);
-    }
-
-
-    private void TryAttack(GameObject target)
-    {
-        if (Time.time < nextAttackTime)
-            return;
-
-        PlayerController playerController =
-            target.GetComponent<PlayerController>();
-
-        if (playerController == null)
-            return;
-
-        Vector2 knockbackDirection =
-            target.transform.position -
-            transform.position;
-
-        playerController.TakeDamage(
-            contactDamage,
-            knockbackDirection
-        );
-
-        nextAttackTime =
-            Time.time + attackCooldown;
+        // ไม่ Damage จาก Collision
     }
 
 
     // =====================================================
-    // DEATH
+    // DIE
     // =====================================================
 
     private void Die()
     {
+        if (currentLightZone != null)
+        {
+            currentLightZone.RemoveEnemy(
+                this
+            );
+
+
+            currentLightZone =
+                null;
+        }
+
+
         Destroy(gameObject);
+    }
+
+
+    // =====================================================
+    // GIZMOS
+    // =====================================================
+
+    private void OnDrawGizmosSelected()
+    {
+        // Detection
+        Gizmos.DrawWireSphere(
+            transform.position,
+            detectionRange
+        );
+
+
+        // Stop
+        Gizmos.DrawWireSphere(
+            transform.position,
+            stopDistance
+        );
+
+
+        // Attack
+        Gizmos.DrawWireSphere(
+            transform.position,
+            attackRange
+        );
     }
 }
