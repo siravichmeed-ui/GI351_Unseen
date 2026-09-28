@@ -14,35 +14,72 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float knockbackForce = 5f;
     [SerializeField] private float hitInvincibilityTime = 0.5f;
 
+    [Header("Player Sprite")]
+    [SerializeField] private SpriteRenderer spriteRenderer;
+
     private float currentHealth;
     private float invincibilityTimer;
 
     private Rigidbody2D rb;
     private Animator animator;
+
     private Vector2 movement;
-    private SpriteRenderer spriteRenderer;
 
     private Coroutine hitFlashCoroutine;
 
+
+    // =====================================================
+    // PUBLIC
+    // =====================================================
+
     public float CurrentHealth => currentHealth;
+
     public float MaxHealth => maxHealth;
 
+
+    // =====================================================
+    // AWAKE
+    // =====================================================
 
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
 
-        animator =
-            GetComponent<Animator>();
-
-        spriteRenderer =
-            GetComponentInChildren<SpriteRenderer>();
+        animator = GetComponent<Animator>();
 
         currentHealth = maxHealth;
     }
 
 
+    // =====================================================
+    // UPDATE
+    // =====================================================
+
     private void Update()
+    {
+        GetInput();
+
+        UpdateAnimation();
+
+        UpdateInvincibility();
+    }
+
+
+    // =====================================================
+    // FIXED UPDATE
+    // =====================================================
+
+    private void FixedUpdate()
+    {
+        Move();
+    }
+
+
+    // =====================================================
+    // INPUT
+    // =====================================================
+
+    private void GetInput()
     {
         movement.x =
             Input.GetAxisRaw("Horizontal");
@@ -52,29 +89,24 @@ public class PlayerController : MonoBehaviour
 
         movement =
             movement.normalized;
-
-        UpdateAnimation();
-        UpdateFacing();
-
-        if (invincibilityTimer > 0f)
-        {
-            invincibilityTimer -=
-                Time.deltaTime;
-        }
     }
 
 
-    private void FixedUpdate()
+    // =====================================================
+    // MOVEMENT
+    // =====================================================
+
+    private void Move()
     {
-        if (invincibilityTimer <= 0f)
-        {
-            rb.MovePosition(
-                rb.position +
-                movement *
-                moveSpeed *
-                Time.fixedDeltaTime
-            );
-        }
+        if (rb == null)
+            return;
+
+        rb.MovePosition(
+            rb.position +
+            movement *
+            moveSpeed *
+            Time.fixedDeltaTime
+        );
     }
 
 
@@ -87,32 +119,52 @@ public class PlayerController : MonoBehaviour
         if (animator == null)
             return;
 
+
         bool isMoving =
             movement.sqrMagnitude > 0.01f;
+
+
+        // -----------------------------
+        // MOVING / IDLE
+        // -----------------------------
 
         animator.SetBool(
             "IsMoving",
             isMoving
         );
+
+
+        // -----------------------------
+        // MOVEMENT X
+        // -----------------------------
+
+        animator.SetFloat(
+            "MoveX",
+            movement.x
+        );
+
+
+        // -----------------------------
+        // MOVEMENT Y
+        // -----------------------------
+
+        animator.SetFloat(
+            "MoveY",
+            movement.y
+        );
     }
 
 
     // =====================================================
-    // FACING
+    // INVINCIBILITY
     // =====================================================
 
-    private void UpdateFacing()
+    private void UpdateInvincibility()
     {
-        if (spriteRenderer == null)
-            return;
-
-        if (movement.x < 0)
+        if (invincibilityTimer > 0f)
         {
-            spriteRenderer.flipX = true;
-        }
-        else if (movement.x > 0)
-        {
-            spriteRenderer.flipX = false;
+            invincibilityTimer -=
+                Time.deltaTime;
         }
     }
 
@@ -129,10 +181,21 @@ public class PlayerController : MonoBehaviour
         if (damage <= 0f)
             return;
 
+
+        // -----------------------------
+        // INVINCIBILITY CHECK
+        // -----------------------------
+
         if (invincibilityTimer > 0f)
             return;
 
+
+        // -----------------------------
+        // DAMAGE
+        // -----------------------------
+
         currentHealth -= damage;
+
 
         currentHealth =
             Mathf.Clamp(
@@ -141,6 +204,7 @@ public class PlayerController : MonoBehaviour
                 maxHealth
             );
 
+
         Debug.Log(
             "Player HP: " +
             currentHealth +
@@ -148,8 +212,18 @@ public class PlayerController : MonoBehaviour
             maxHealth
         );
 
+
+        // -----------------------------
+        // INVINCIBILITY
+        // -----------------------------
+
         invincibilityTimer =
             hitInvincibilityTime;
+
+
+        // -----------------------------
+        // HIT FLASH
+        // -----------------------------
 
         if (hitFlashCoroutine != null)
         {
@@ -158,14 +232,25 @@ public class PlayerController : MonoBehaviour
             );
         }
 
+
         hitFlashCoroutine =
             StartCoroutine(
                 HitFlash()
             );
 
+
+        // -----------------------------
+        // KNOCKBACK
+        // -----------------------------
+
         ApplyKnockback(
             hitDirection
         );
+
+
+        // -----------------------------
+        // DEATH
+        // -----------------------------
 
         if (currentHealth <= 0f)
         {
@@ -182,14 +267,24 @@ public class PlayerController : MonoBehaviour
         Vector2 direction
     )
     {
+        if (rb == null)
+            return;
+
+
         if (direction.sqrMagnitude <= 0.001f)
             return;
 
+
         direction.Normalize();
 
+
+        // ล้างความเร็วเดิม
+        // ป้องกัน Knockback สะสม
         rb.linearVelocity =
             Vector2.zero;
 
+
+        // ใส่ Knockback ใหม่
         rb.linearVelocity =
             direction *
             knockbackForce;
@@ -205,15 +300,19 @@ public class PlayerController : MonoBehaviour
         if (spriteRenderer == null)
             yield break;
 
+
         spriteRenderer.color =
             Color.red;
+
 
         yield return new WaitForSeconds(
             hitFlashDuration
         );
 
+
         spriteRenderer.color =
             Color.white;
+
 
         hitFlashCoroutine = null;
     }
@@ -225,8 +324,11 @@ public class PlayerController : MonoBehaviour
 
     private void Die()
     {
-        Debug.Log("PLAYER DEAD");
+        Debug.Log(
+            "PLAYER DEAD"
+        );
 
-        // Game Over ทำทีหลัง
+
+        // Game Over จะทำทีหลัง
     }
 }
