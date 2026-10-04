@@ -1,24 +1,23 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerScanSkill : MonoBehaviour
 {
     [Header("Scan")]
-    [SerializeField]
-    private KeyCode scanKey =
-        KeyCode.Q;
+    [SerializeField] private KeyCode scanKey = KeyCode.Q;
+
+    [SerializeField] private float scanRange = 8f;
 
 
     [Header("Scan Duration")]
-    [SerializeField]
-    private float scanDuration =
-        5f;
+    [SerializeField] private float scanDuration = 5f;
 
 
     [Header("Cooldown")]
-    [SerializeField]
-    private float cooldown =
-        15f;
+    [SerializeField] private float cooldown = 15f;
+
+    [SerializeField] private float minimumCooldown = 1f;
 
 
     [Header("Marker")]
@@ -33,9 +32,18 @@ public class PlayerScanSkill : MonoBehaviour
     [SerializeField] private Camera targetCamera;
 
 
-    private bool isScanning = false;
+    [Header("Radar Effect")]
+    [SerializeField] private RadarScanEffect radarEffect;
 
-    private bool isCooldown = false;
+
+    private bool isScanning;
+
+    private bool isCooldown;
+
+
+    // Object ที่ Radar เจอแล้ว
+    private HashSet<ScanTarget> detectedTargets =
+        new HashSet<ScanTarget>();
 
 
     // =====================================================
@@ -53,8 +61,31 @@ public class PlayerScanSkill : MonoBehaviour
 
         if (markerParent == null)
         {
-            Debug.LogWarning(
-                "PlayerScanSkill ยังไม่ได้ใส่ Marker Parent"
+            GameObject scanMarkers =
+                GameObject.Find(
+                    "ScanMarkers"
+                );
+
+
+            if (scanMarkers != null)
+            {
+                markerParent =
+                    scanMarkers.transform;
+            }
+        }
+
+
+        if (radarEffect == null)
+        {
+            radarEffect =
+                FindFirstObjectByType<RadarScanEffect>();
+        }
+
+
+        if (targetCamera == null)
+        {
+            Debug.LogError(
+                "PlayerScanSkill: หา Main Camera ไม่เจอ"
             );
         }
 
@@ -62,7 +93,23 @@ public class PlayerScanSkill : MonoBehaviour
         if (markerPrefab == null)
         {
             Debug.LogWarning(
-                "PlayerScanSkill ยังไม่ได้ใส่ Marker Prefab"
+                "PlayerScanSkill: Marker Prefab ยังไม่ได้ใส่"
+            );
+        }
+
+
+        if (markerParent == null)
+        {
+            Debug.LogWarning(
+                "PlayerScanSkill: หา ScanMarkers ไม่เจอ"
+            );
+        }
+
+
+        if (radarEffect == null)
+        {
+            Debug.LogError(
+                "PlayerScanSkill: หา RadarScanEffect ไม่เจอ"
             );
         }
     }
@@ -82,17 +129,21 @@ public class PlayerScanSkill : MonoBehaviour
 
 
     // =====================================================
-    // TRY USE
+    // TRY USE SCAN
     // =====================================================
 
     private void TryUseScan()
     {
         if (isScanning)
+        {
             return;
+        }
 
 
         if (isCooldown)
+        {
             return;
+        }
 
 
         StartCoroutine(
@@ -107,81 +158,120 @@ public class PlayerScanSkill : MonoBehaviour
 
     private IEnumerator ScanRoutine()
     {
-        isScanning = true;
+        isScanning =
+            true;
 
 
         Debug.Log(
-            "SCAN START"
+            "========== SCAN START =========="
         );
 
 
+        // ล้าง Object ที่เคยเจอจาก Scan รอบก่อน
+        detectedTargets.Clear();
+
+
         // =================================================
-        // SCAN ทุก Target ในแมพ
+        // ตั้ง Radar
         // =================================================
 
-        for (int i = 0;
-             i < ScanTarget.AllTargets.Count;
-             i++)
+        if (radarEffect != null)
         {
-            ScanTarget target =
-                ScanTarget.AllTargets[i];
-
-
-            if (target == null)
-                continue;
-
-
-            if (!target.CanBeScanned())
-                continue;
-
-
-            target.ShowMarker(
-                markerPrefab,
-                markerParent,
-                targetCamera
+            radarEffect.SetMaxRadius(
+                scanRange
             );
+
+
+            radarEffect.PlayRadar();
         }
 
 
         // =================================================
-        // เปิด Scan ตามเวลาที่กำหนด
+        // ระยะเวลาที่ Radar ทำงาน
         // =================================================
 
-        yield return new WaitForSeconds(
+        float radarTime = 0f;
+
+
+        float radarDuration =
+            radarEffect != null
+                ? radarEffect.GetDuration()
+                : 0f;
+
+
+        // =================================================
+        // RADAR กำลังขยาย
+        // =================================================
+
+        while (
+            radarTime <
+            radarDuration
+        )
+        {
+            radarTime +=
+                Time.deltaTime;
+
+
+            // คำนวณรัศมีปัจจุบัน
+            float currentRadius =
+                radarEffect.GetCurrentRadius(
+                    radarTime
+                );
+
+
+            // ตรวจ Object ที่ Radar ไปถึงแล้ว
+            CheckTargetsInRadar(
+                currentRadius
+            );
+
+
+            yield return null;
+        }
+
+
+        // =================================================
+        // RADAR จบแล้ว
+        // =================================================
+
+        Debug.Log(
+            "========== RADAR FINISHED =========="
+        );
+
+
+        // =================================================
+        // แสดง ? เฉพาะ Object ที่ Radar เจอ
+        // =================================================
+
+        ShowDetectedMarkers();
+
+
+        // =================================================
+        // รอเวลาที่ ? จะแสดง
+        // =================================================
+
+        yield return new WaitForSecondsRealtime(
             scanDuration
         );
 
 
         // =================================================
-        // ปิด Marker
+        // ลบ ?
         // =================================================
 
-        for (int i = 0;
-             i < ScanTarget.AllTargets.Count;
-             i++)
-        {
-            ScanTarget target =
-                ScanTarget.AllTargets[i];
+        RemoveScanMarkers();
 
 
-            if (target == null)
-                continue;
-
-
-            target.RemoveMarker();
-        }
-
-
-        isScanning = false;
+        isScanning =
+            false;
 
 
         Debug.Log(
-            "SCAN END"
+            "========== SCAN END =========="
         );
 
 
         // =================================================
-        // START COOLDOWN
+        // Cooldown
         // =================================================
 
         StartCoroutine(
@@ -191,24 +281,234 @@ public class PlayerScanSkill : MonoBehaviour
 
 
     // =====================================================
+    // CHECK TARGETS
+    // =====================================================
+
+    private void CheckTargetsInRadar(
+        float currentRadius
+    )
+    {
+        if (
+            ScanTarget.AllTargets ==
+            null
+        )
+        {
+            return;
+        }
+
+
+        for (
+            int i = 0;
+            i < ScanTarget.AllTargets.Count;
+            i++
+        )
+        {
+            ScanTarget target =
+                ScanTarget.AllTargets[i];
+
+
+            if (target == null)
+            {
+                continue;
+            }
+
+
+            // ถ้าเจอไปแล้ว ไม่ต้องตรวจซ้ำ
+            if (
+                detectedTargets.Contains(
+                    target
+                )
+            )
+            {
+                continue;
+            }
+
+
+            // Target ที่ Scan ไม่ได้
+            if (!target.CanBeScanned())
+            {
+                continue;
+            }
+
+
+            // =================================================
+            // หาระยะจาก Player ไป Target
+            // =================================================
+
+            float distance =
+                Vector2.Distance(
+                    transform.position,
+                    target.transform.position
+                );
+
+
+            // =================================================
+            // Radar ไปถึง Target แล้ว
+            // =================================================
+
+            if (
+                distance <=
+                currentRadius
+            )
+            {
+                detectedTargets.Add(
+                    target
+                );
+
+
+                Debug.Log(
+                    "RADAR FOUND: "
+                    + target.name
+                    + " | Distance = "
+                    + distance.ToString("F2")
+                );
+            }
+        }
+    }
+
+
+    // =====================================================
+    // SHOW DETECTED MARKERS
+    // =====================================================
+
+    private void ShowDetectedMarkers()
+    {
+        if (markerPrefab == null)
+        {
+            return;
+        }
+
+
+        if (markerParent == null)
+        {
+            return;
+        }
+
+
+        foreach (
+            ScanTarget target
+            in detectedTargets
+        )
+        {
+            if (target == null)
+            {
+                continue;
+            }
+
+
+            target.ShowMarker(
+                markerPrefab,
+                markerParent,
+                targetCamera
+            );
+        }
+    }
+
+
+    // =====================================================
+    // REMOVE MARKERS
+    // =====================================================
+
+    private void RemoveScanMarkers()
+    {
+        foreach (
+            ScanTarget target
+            in detectedTargets
+        )
+        {
+            if (target == null)
+            {
+                continue;
+            }
+
+
+            target.RemoveMarker();
+        }
+
+
+        detectedTargets.Clear();
+    }
+
+
+    // =====================================================
     // COOLDOWN
     // =====================================================
 
     private IEnumerator CooldownRoutine()
     {
-        isCooldown = true;
+        isCooldown =
+            true;
 
 
-        yield return new WaitForSeconds(
+        yield return new WaitForSecondsRealtime(
             cooldown
         );
 
 
-        isCooldown = false;
+        isCooldown =
+            false;
 
 
         Debug.Log(
-            "SCAN READY"
+            "========== SCAN READY =========="
+        );
+    }
+
+
+    // =====================================================
+    // UPGRADE - SCAN RANGE
+    // =====================================================
+
+    public void IncreaseScanRange(
+        float amount
+    )
+    {
+        if (amount <= 0f)
+        {
+            return;
+        }
+
+
+        scanRange +=
+            amount;
+
+
+        Debug.Log(
+            "Scan Range เพิ่มเป็น: " +
+            scanRange
+        );
+    }
+
+
+    // =====================================================
+    // UPGRADE - COOLDOWN
+    // =====================================================
+
+    public void DecreaseCooldown(
+        float amount
+    )
+    {
+        if (amount <= 0f)
+        {
+            return;
+        }
+
+
+        cooldown -=
+            amount;
+
+
+        cooldown =
+            Mathf.Max(
+                cooldown,
+                minimumCooldown
+            );
+
+
+        Debug.Log(
+            "Scan Cooldown ลดเหลือ: " +
+            cooldown +
+            " วินาที"
         );
     }
 
@@ -226,5 +526,23 @@ public class PlayerScanSkill : MonoBehaviour
     public bool IsOnCooldown()
     {
         return isCooldown;
+    }
+
+
+    public float GetScanRange()
+    {
+        return scanRange;
+    }
+
+
+    public float GetCooldown()
+    {
+        return cooldown;
+    }
+
+
+    public float GetScanDuration()
+    {
+        return scanDuration;
     }
 }

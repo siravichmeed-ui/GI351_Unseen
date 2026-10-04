@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Border
   - Wall
+  - HealthPotion
   layers:
   - Default
   - TransparentFX

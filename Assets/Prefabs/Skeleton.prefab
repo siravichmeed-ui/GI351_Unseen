@@ -163,6 +163,10 @@ MonoBehaviour:
   attackStateName: Skeleton_Attack
   walkStateName: Skeleton_Walk
   flashDuration: 0.08
+  expOrbPrefab: {fileID: 7770834877065051688, guid: 98826b0024d942a478c267a0e887783b, type: 3}
+  expOrbAmount: 5
+  expPerOrb: 10
+  expDropRadius: 0.5
 --- !u!95 &8143593246770353381
 Animator:
   serializedVersion: 7

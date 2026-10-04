@@ -127,6 +127,10 @@ MonoBehaviour:
   attackStateName: Knight_Attack
   walkStateName: Knight_Walk
   flashDuration: 0.08
+  expOrbPrefab: {fileID: 7770834877065051688, guid: 98826b0024d942a478c267a0e887783b, type: 3}
+  expOrbAmount: 10
+  expPerOrb: 5
+  expDropRadius: 0.5
 --- !u!70 &2208747974960082558
 CapsuleCollider2D:
   m_ObjectHideFlags: 0

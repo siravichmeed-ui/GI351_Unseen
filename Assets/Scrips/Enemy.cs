@@ -119,6 +119,20 @@ public class Enemy : MonoBehaviour
 
 
     // =====================================================
+    // EXP DROP
+    // =====================================================
+
+    [Header("EXP Drop")]
+    [SerializeField] private GameObject expOrbPrefab;
+
+    [SerializeField] private int expOrbAmount = 3;
+
+    [SerializeField] private float expPerOrb = 10f;
+
+    [SerializeField] private float expDropRadius = 0.5f;
+
+
+    // =====================================================
     // PRIVATE VARIABLES
     // =====================================================
 
@@ -315,7 +329,6 @@ public class Enemy : MonoBehaviour
         }
 
 
-        // ขณะ Attack ห้ามเดิน
         if (isAttacking)
         {
             rb.linearVelocity =
@@ -334,7 +347,6 @@ public class Enemy : MonoBehaviour
             toPlayer.magnitude;
 
 
-        // ถึงระยะหยุด
         if (distanceToPlayer <=
             stopDistance)
         {
@@ -422,8 +434,6 @@ public class Enemy : MonoBehaviour
             return;
 
 
-        // ถ้ากำลัง Attack อยู่
-        // ห้ามเริ่ม Attack ซ้ำ
         if (isAttacking)
             return;
 
@@ -791,7 +801,6 @@ public class Enemy : MonoBehaviour
             );
 
 
-        // ต้องอยู่ในระยะตอน "เริ่มตี"
         if (distanceToPlayer >
             attackRange)
         {
@@ -868,10 +877,6 @@ public class Enemy : MonoBehaviour
             return;
 
 
-        // =================================================
-        // เช็ก Player ตอน "ดาบฟัน"
-        // =================================================
-
         float distanceToPlayer =
             Vector2.Distance(
                 transform.position,
@@ -879,8 +884,6 @@ public class Enemy : MonoBehaviour
             );
 
 
-        // ถ้าตอนดาบฟัน Player อยู่ไกล
-        // ไม่ Damage
         if (distanceToPlayer >
             attackRange)
         {
@@ -1128,7 +1131,6 @@ public class Enemy : MonoBehaviour
             return;
         }
 
-        // ไม่ Damage จาก Collision
         // Damage ใช้ AttackHit()
     }
 
@@ -1144,7 +1146,77 @@ public class Enemy : MonoBehaviour
             return;
         }
 
-        // ไม่ Damage จาก Collision
+        // Damage ใช้ AttackHit()
+    }
+
+
+    // =====================================================
+    // DROP EXP
+    // =====================================================
+
+    private void DropExp()
+    {
+        if (expOrbPrefab == null)
+        {
+            Debug.LogWarning(
+                gameObject.name +
+                " ไม่มี Exp Orb Prefab"
+            );
+
+            return;
+        }
+
+        if (expOrbAmount <= 0)
+            return;
+
+
+        for (int i = 0; i < expOrbAmount; i++)
+        {
+            // สุ่มทิศทางรอบตัว
+            Vector2 randomDirection =
+                Random.insideUnitCircle.normalized;
+
+            // สุ่มระยะกระจาย
+            float randomDistance =
+                Random.Range(
+                    0.5f,
+                    expDropRadius
+                );
+
+
+            Vector2 offset =
+                randomDirection *
+                randomDistance;
+
+
+            Vector3 spawnPosition =
+                transform.position +
+                new Vector3(
+                    offset.x,
+                    offset.y,
+                    0f
+                );
+
+
+            GameObject orb =
+                Instantiate(
+                    expOrbPrefab,
+                    spawnPosition,
+                    Quaternion.identity
+                );
+
+
+            ExpOrb expOrb =
+                orb.GetComponent<ExpOrb>();
+
+
+            if (expOrb != null)
+            {
+                expOrb.SetExpAmount(
+                    expPerOrb
+                );
+            }
+        }
     }
 
 
@@ -1163,6 +1235,23 @@ public class Enemy : MonoBehaviour
 
             currentLightZone =
                 null;
+        }
+
+
+        // ดรอป EXP
+        DropExp();
+
+
+        // ดรอป Health Potion
+        EnemySpawner enemySpawner =
+            FindFirstObjectByType<EnemySpawner>();
+
+
+        if (enemySpawner != null)
+        {
+            enemySpawner.TryDropHealthPotion(
+                transform.position
+            );
         }
 
 

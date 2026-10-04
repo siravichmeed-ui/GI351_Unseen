@@ -3,7 +3,6 @@ using UnityEngine;
 
 public class ScanTarget : MonoBehaviour
 {
-    // เก็บ ScanTarget ทั้งหมดในแมพ
     public static readonly List<ScanTarget> AllTargets =
         new List<ScanTarget>();
 
@@ -12,13 +11,8 @@ public class ScanTarget : MonoBehaviour
     [SerializeField] private bool canBeScanned = true;
 
 
-    // Marker ที่จะถูกสร้างตอน Scan
     private GameObject currentMarker;
 
-
-    // =====================================================
-    // ENABLE
-    // =====================================================
 
     private void OnEnable()
     {
@@ -29,10 +23,6 @@ public class ScanTarget : MonoBehaviour
     }
 
 
-    // =====================================================
-    // DISABLE
-    // =====================================================
-
     private void OnDisable()
     {
         AllTargets.Remove(this);
@@ -41,19 +31,11 @@ public class ScanTarget : MonoBehaviour
     }
 
 
-    // =====================================================
-    // CAN SCAN
-    // =====================================================
-
     public bool CanBeScanned()
     {
         return canBeScanned;
     }
 
-
-    // =====================================================
-    // SHOW MARKER
-    // =====================================================
 
     public void ShowMarker(
         GameObject markerPrefab,
@@ -95,8 +77,7 @@ public class ScanTarget : MonoBehaviour
             );
 
 
-        currentMarker =
-            marker;
+        currentMarker = marker;
 
 
         ScanMarker scanMarker =
@@ -119,10 +100,6 @@ public class ScanTarget : MonoBehaviour
         );
     }
 
-
-    // =====================================================
-    // REMOVE MARKER
-    // =====================================================
 
     public void RemoveMarker()
     {

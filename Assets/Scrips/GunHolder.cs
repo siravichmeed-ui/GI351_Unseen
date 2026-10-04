@@ -5,22 +5,57 @@ public class GunHolder : MonoBehaviour
     [Header("Gun Position")]
     [SerializeField] private float distanceFromPlayer = 1f;
 
+
     [Header("Gun")]
     [SerializeField] private Transform gun;
+
 
     private Camera mainCamera;
 
 
+    // =====================================================
+    // UI LOCK
+    // =====================================================
+
+    private bool canControlGun = true;
+
+
+    // =====================================================
+    // START
+    // =====================================================
+
     private void Start()
     {
-        mainCamera = Camera.main;
+        mainCamera =
+            Camera.main;
     }
 
 
+    // =====================================================
+    // UPDATE
+    // =====================================================
+
     private void Update()
     {
+        if (!canControlGun)
+            return;
+
+
         RotateAroundPlayer();
+
         FlipGun();
+    }
+
+
+    // =====================================================
+    // SET CONTROL
+    // =====================================================
+
+    public void SetCanControlGun(
+        bool value
+    )
+    {
+        canControlGun = value;
     }
 
 
@@ -30,13 +65,19 @@ public class GunHolder : MonoBehaviour
 
     private void RotateAroundPlayer()
     {
+        if (mainCamera == null)
+            return;
+
+
         Vector3 mousePosition =
             Input.mousePosition;
+
 
         Vector3 mouseWorldPosition =
             mainCamera.ScreenToWorldPoint(
                 mousePosition
             );
+
 
         mouseWorldPosition.z =
             transform.parent.position.z;
@@ -68,7 +109,8 @@ public class GunHolder : MonoBehaviour
             Mathf.Atan2(
                 direction.y,
                 direction.x
-            ) * Mathf.Rad2Deg;
+            ) *
+            Mathf.Rad2Deg;
 
 
         transform.rotation =
@@ -91,8 +133,10 @@ public class GunHolder : MonoBehaviour
 
 
         // ถ้า Gun อยู่ทางซ้ายของ Player
-        if (transform.position.x <
-            transform.parent.position.x)
+        if (
+            transform.position.x <
+            transform.parent.position.x
+        )
         {
             gun.localScale =
                 new Vector3(
@@ -101,6 +145,7 @@ public class GunHolder : MonoBehaviour
                     1f
                 );
         }
+
 
         // ถ้า Gun อยู่ทางขวาของ Player
         else

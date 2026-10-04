@@ -93,12 +93,9 @@ public class LampManager : MonoBehaviour
 
         if (playerLight != null)
         {
-            // ความสว่างคงที่
             playerLight.intensity =
                 playerMaxIntensity;
 
-
-            // เริ่มต้นวงแสงใหญ่สุด
             playerLight.pointLightOuterRadius =
                 playerMaxRadius;
         }
@@ -224,14 +221,13 @@ public class LampManager : MonoBehaviour
 
 
         progress =
-            Mathf.Clamp01(progress);
+            Mathf.Clamp01(
+                progress
+            );
 
 
         // =================================================
-        // ลดขนาดวงแสง
-        //
-        // 100% เวลา = Max Radius
-        // 0% เวลา   = Min Radius
+        // ลดขนาดวงแสงตามเวลาที่เหลือ
         // =================================================
 
         playerLight.pointLightOuterRadius =
@@ -243,7 +239,7 @@ public class LampManager : MonoBehaviour
 
 
         // =================================================
-        // ความสว่างไม่ลดตามเวลา
+        // ความสว่าง
         // =================================================
 
         playerLight.intensity =
@@ -261,10 +257,6 @@ public class LampManager : MonoBehaviour
             return;
 
 
-        // =================================================
-        // สุ่มการกระพริบแบบ Smooth
-        // =================================================
-
         float flicker =
             Mathf.PerlinNoise(
                 Time.time *
@@ -280,12 +272,6 @@ public class LampManager : MonoBehaviour
                 flicker
             );
 
-
-        // =================================================
-        // กระพริบเฉพาะ Intensity
-        //
-        // Radius ยังคงถูกควบคุมโดยเวลา
-        // =================================================
 
         playerLight.intensity =
             Mathf.Min(
@@ -310,12 +296,9 @@ public class LampManager : MonoBehaviour
 
         if (playerLight != null)
         {
-            // ปิดวงแสงจนหมด
             playerLight.pointLightOuterRadius =
                 playerMinRadius;
 
-
-            // ปิดความสว่าง
             playerLight.intensity =
                 playerMinIntensity;
         }
@@ -351,7 +334,9 @@ public class LampManager : MonoBehaviour
 
 
         progress =
-            Mathf.Clamp01(progress);
+            Mathf.Clamp01(
+                progress
+            );
 
 
         globalLight.intensity =
@@ -371,9 +356,79 @@ public class LampManager : MonoBehaviour
             globalLight.intensity =
                 globalMinIntensity;
 
-
             isGlobalFading = false;
         }
+    }
+
+
+    // =====================================================
+    // ADD LIGHT TIME
+    // =====================================================
+
+    public void AddLightTime(
+        float amount
+    )
+    {
+        if (amount <= 0f)
+        {
+            return;
+        }
+
+
+        // =================================================
+        // เพิ่มเวลา
+        // =================================================
+
+        currentTime +=
+            amount;
+
+
+        // =================================================
+        // ห้ามเกินเวลาสูงสุด
+        // =================================================
+
+        currentTime =
+            Mathf.Clamp(
+                currentTime,
+                0f,
+                lampDuration
+            );
+
+
+        // =================================================
+        // ถ้าไฟเคยดับ
+        // ให้เปิดกลับมา
+        // =================================================
+
+        if (currentTime > 0f)
+        {
+            isLampOff = false;
+
+            isFlickering = false;
+        }
+
+
+        // =================================================
+        // อัปเดตไฟทันที
+        // =================================================
+
+        UpdatePlayerLight();
+
+
+        // =================================================
+        // ถ้า Global Light กำลังดับ
+        // ไม่ต้องหยุดระบบเดิม
+        // =================================================
+
+
+        Debug.Log(
+            "เพิ่มเวลาไฟ: +"
+            + amount
+            + " วินาที"
+            + " | เหลือ: "
+            + currentTime
+            + " วินาที"
+        );
     }
 
 
@@ -448,7 +503,6 @@ public class LampManager : MonoBehaviour
         {
             playerLight.intensity =
                 playerMaxIntensity;
-
 
             playerLight.pointLightOuterRadius =
                 playerMaxRadius;

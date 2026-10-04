@@ -11,10 +11,6 @@ public class ScanMarker : MonoBehaviour
     [SerializeField] private float screenEdgePadding = 50f;
 
 
-    [Header("Marker")]
-    [SerializeField] private bool rotateTowardsTarget = true;
-
-
     private Transform target;
 
     private Camera targetCamera;
@@ -33,13 +29,9 @@ public class ScanMarker : MonoBehaviour
         Camera cameraToUse
     )
     {
-        target =
-            targetTransform;
+        target = targetTransform;
 
-
-        targetCamera =
-            cameraToUse;
-
+        targetCamera = cameraToUse;
 
         rectTransform =
             GetComponent<RectTransform>();
@@ -61,6 +53,12 @@ public class ScanMarker : MonoBehaviour
             markerImage =
                 GetComponentInChildren<Image>();
         }
+
+
+        // สำคัญ
+        // บังคับให้ Marker ตั้งตรงตั้งแต่เริ่ม
+        rectTransform.localRotation =
+            Quaternion.identity;
     }
 
 
@@ -79,23 +77,27 @@ public class ScanMarker : MonoBehaviour
 
 
         if (targetCamera == null)
-        {
             return;
-        }
 
 
         if (canvasRect == null)
-        {
             return;
-        }
 
 
         UpdateMarkerPosition();
+
+
+        // =================================================
+        // บังคับให้ ? ตั้งตรงตลอดเวลา
+        // =================================================
+
+        rectTransform.localRotation =
+            Quaternion.identity;
     }
 
 
     // =====================================================
-    // UPDATE POSITION
+    // UPDATE MARKER POSITION
     // =====================================================
 
     private void UpdateMarkerPosition()
@@ -112,15 +114,13 @@ public class ScanMarker : MonoBehaviour
 
         bool isOutsideScreen =
             screenPosition.x < 0f ||
-            screenPosition.x >
-            Screen.width ||
+            screenPosition.x > Screen.width ||
             screenPosition.y < 0f ||
-            screenPosition.y >
-            Screen.height;
+            screenPosition.y > Screen.height;
 
 
         // =================================================
-        // OBJECT อยู่ในจอ
+        // TARGET อยู่ในจอ
         // =================================================
 
         if (!isBehindCamera &&
@@ -135,7 +135,7 @@ public class ScanMarker : MonoBehaviour
 
 
         // =================================================
-        // OBJECT อยู่นอกจอ
+        // TARGET อยู่นอกจอ
         // =================================================
 
         SetMarkerAtScreenEdge(
@@ -146,7 +146,7 @@ public class ScanMarker : MonoBehaviour
 
 
     // =====================================================
-    // INSIDE SCREEN
+    // TARGET อยู่ในจอ
     // =====================================================
 
     private void SetMarkerInsideScreen(
@@ -168,14 +168,14 @@ public class ScanMarker : MonoBehaviour
             localPoint;
 
 
-        // อยู่ในจอ ไม่ต้องหมุน
+        // ห้ามหมุน
         rectTransform.localRotation =
             Quaternion.identity;
     }
 
 
     // =====================================================
-    // SCREEN EDGE
+    // TARGET อยู่นอกจอ
     // =====================================================
 
     private void SetMarkerAtScreenEdge(
@@ -194,7 +194,7 @@ public class ScanMarker : MonoBehaviour
 
 
         // =================================================
-        // OBJECT อยู่ด้านหลัง Camera
+        // TARGET อยู่ด้านหลัง Camera
         // =================================================
 
         if (behindCamera)
@@ -207,8 +207,7 @@ public class ScanMarker : MonoBehaviour
                 );
 
 
-            if (direction.sqrMagnitude <
-                0.001f)
+            if (direction.sqrMagnitude < 0.001f)
             {
                 direction =
                     Vector2.up;
@@ -220,7 +219,7 @@ public class ScanMarker : MonoBehaviour
 
 
         // =================================================
-        // OBJECT อยู่ด้านหน้าแต่หลุดจอ
+        // TARGET อยู่ด้านหน้า
         // =================================================
 
         else
@@ -233,8 +232,7 @@ public class ScanMarker : MonoBehaviour
                 screenCenter;
 
 
-            if (direction.sqrMagnitude <
-                0.001f)
+            if (direction.sqrMagnitude < 0.001f)
             {
                 direction =
                     Vector2.up;
@@ -246,7 +244,7 @@ public class ScanMarker : MonoBehaviour
 
 
         // =================================================
-        // หาจุดตัดกับขอบหน้าจอ
+        // ขนาดพื้นที่ด้านในของ Screen
         // =================================================
 
         float halfWidth =
@@ -259,18 +257,43 @@ public class ScanMarker : MonoBehaviour
             screenEdgePadding;
 
 
-        float scaleX =
-            Mathf.Abs(
-                halfWidth /
-                direction.x
-            );
+        // =================================================
+        // ป้องกันหารด้วย 0
+        // =================================================
+
+        float scaleX;
+
+        float scaleY;
 
 
-        float scaleY =
-            Mathf.Abs(
-                halfHeight /
-                direction.y
-            );
+        if (Mathf.Abs(direction.x) > 0.001f)
+        {
+            scaleX =
+                Mathf.Abs(
+                    halfWidth /
+                    direction.x
+                );
+        }
+        else
+        {
+            scaleX =
+                float.PositiveInfinity;
+        }
+
+
+        if (Mathf.Abs(direction.y) > 0.001f)
+        {
+            scaleY =
+                Mathf.Abs(
+                    halfHeight /
+                    direction.y
+                );
+        }
+        else
+        {
+            scaleY =
+                float.PositiveInfinity;
+        }
 
 
         float scale =
@@ -291,6 +314,10 @@ public class ScanMarker : MonoBehaviour
         }
 
 
+        // =================================================
+        // ตำแหน่งบนขอบจอ
+        // =================================================
+
         Vector2 edgePosition =
             screenCenter +
             direction *
@@ -298,7 +325,7 @@ public class ScanMarker : MonoBehaviour
 
 
         // =================================================
-        // Convert Screen → Canvas
+        // Screen → Canvas
         // =================================================
 
         Vector2 localPoint;
@@ -317,25 +344,13 @@ public class ScanMarker : MonoBehaviour
 
 
         // =================================================
-        // หมุน Marker ตามทิศทาง
+        // สำคัญมาก
+        //
+        // ไม่หมุน Marker
+        // ? จะตั้งตรงเสมอ
         // =================================================
 
-        if (rotateTowardsTarget)
-        {
-            float angle =
-                Mathf.Atan2(
-                    direction.y,
-                    direction.x
-                ) *
-                Mathf.Rad2Deg;
-
-
-            rectTransform.localRotation =
-                Quaternion.Euler(
-                    0f,
-                    0f,
-                    angle - 90f
-                );
-        }
+        rectTransform.localRotation =
+            Quaternion.identity;
     }
 }

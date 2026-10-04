@@ -6,26 +6,40 @@ public class PlayerController : MonoBehaviour
     [Header("Movement")]
     [SerializeField] private float moveSpeed = 5f;
 
+
     [Header("Health")]
     [SerializeField] private float maxHealth = 100f;
+
 
     [Header("Hit Effect")]
     [SerializeField] private float hitFlashDuration = 0.08f;
     [SerializeField] private float knockbackForce = 5f;
     [SerializeField] private float hitInvincibilityTime = 0.5f;
 
+
     [Header("Player Sprite")]
     [SerializeField] private SpriteRenderer spriteRenderer;
+
 
     private float currentHealth;
     private float invincibilityTimer;
 
+
     private Rigidbody2D rb;
     private Animator animator;
 
+
     private Vector2 movement;
 
+
     private Coroutine hitFlashCoroutine;
+
+
+    // =====================================================
+    // UI LOCK
+    // =====================================================
+
+    private bool isUIOpen = false;
 
 
     // =====================================================
@@ -57,6 +71,23 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
+        // ถ้าเปิด UI อยู่
+        if (isUIOpen)
+        {
+            movement = Vector2.zero;
+
+            if (animator != null)
+            {
+                animator.SetBool(
+                    "IsMoving",
+                    false
+                );
+            }
+
+            return;
+        }
+
+
         GetInput();
 
         UpdateAnimation();
@@ -71,7 +102,52 @@ public class PlayerController : MonoBehaviour
 
     private void FixedUpdate()
     {
+        // หยุดการเดินตอนเปิด UI
+        if (isUIOpen)
+        {
+            if (rb != null)
+            {
+                rb.linearVelocity =
+                    Vector2.zero;
+            }
+
+            return;
+        }
+
+
         Move();
+    }
+
+
+    // =====================================================
+    // UI LOCK
+    // =====================================================
+
+    public void SetUIOpen(bool value)
+    {
+        isUIOpen = value;
+
+
+        if (isUIOpen)
+        {
+            movement = Vector2.zero;
+
+
+            if (rb != null)
+            {
+                rb.linearVelocity =
+                    Vector2.zero;
+            }
+
+
+            if (animator != null)
+            {
+                animator.SetBool(
+                    "IsMoving",
+                    false
+                );
+            }
+        }
     }
 
 
@@ -101,6 +177,7 @@ public class PlayerController : MonoBehaviour
         if (rb == null)
             return;
 
+
         rb.MovePosition(
             rb.position +
             movement *
@@ -124,29 +201,17 @@ public class PlayerController : MonoBehaviour
             movement.sqrMagnitude > 0.01f;
 
 
-        // -----------------------------
-        // MOVING / IDLE
-        // -----------------------------
-
         animator.SetBool(
             "IsMoving",
             isMoving
         );
 
 
-        // -----------------------------
-        // MOVEMENT X
-        // -----------------------------
-
         animator.SetFloat(
             "MoveX",
             movement.x
         );
 
-
-        // -----------------------------
-        // MOVEMENT Y
-        // -----------------------------
 
         animator.SetFloat(
             "MoveY",
@@ -182,17 +247,9 @@ public class PlayerController : MonoBehaviour
             return;
 
 
-        // -----------------------------
-        // INVINCIBILITY CHECK
-        // -----------------------------
-
         if (invincibilityTimer > 0f)
             return;
 
-
-        // -----------------------------
-        // DAMAGE
-        // -----------------------------
 
         currentHealth -= damage;
 
@@ -213,17 +270,9 @@ public class PlayerController : MonoBehaviour
         );
 
 
-        // -----------------------------
-        // INVINCIBILITY
-        // -----------------------------
-
         invincibilityTimer =
             hitInvincibilityTime;
 
-
-        // -----------------------------
-        // HIT FLASH
-        // -----------------------------
 
         if (hitFlashCoroutine != null)
         {
@@ -239,23 +288,51 @@ public class PlayerController : MonoBehaviour
             );
 
 
-        // -----------------------------
-        // KNOCKBACK
-        // -----------------------------
-
         ApplyKnockback(
             hitDirection
         );
 
 
-        // -----------------------------
-        // DEATH
-        // -----------------------------
-
         if (currentHealth <= 0f)
         {
             Die();
         }
+    }
+
+
+    // =====================================================
+    // HEAL
+    // =====================================================
+
+    public void Heal(float amount)
+    {
+        if (amount <= 0f)
+            return;
+
+
+        if (currentHealth <= 0f)
+            return;
+
+
+        currentHealth += amount;
+
+
+        currentHealth =
+            Mathf.Clamp(
+                currentHealth,
+                0f,
+                maxHealth
+            );
+
+
+        Debug.Log(
+            "Player Heal: +" +
+            amount +
+            " | HP: " +
+            currentHealth +
+            " / " +
+            maxHealth
+        );
     }
 
 
@@ -278,13 +355,10 @@ public class PlayerController : MonoBehaviour
         direction.Normalize();
 
 
-        // ล้างความเร็วเดิม
-        // ป้องกัน Knockback สะสม
         rb.linearVelocity =
             Vector2.zero;
 
 
-        // ใส่ Knockback ใหม่
         rb.linearVelocity =
             direction *
             knockbackForce;
@@ -327,8 +401,26 @@ public class PlayerController : MonoBehaviour
         Debug.Log(
             "PLAYER DEAD"
         );
+    }
+    public void IncreaseMaxHealth(float amount)
+    {
+        if (amount <= 0f)
+            return;
 
+        maxHealth += amount;
 
-        // Game Over จะทำทีหลัง
+        currentHealth += amount;
+
+        currentHealth =
+            Mathf.Clamp(
+                currentHealth,
+                0f,
+                maxHealth
+            );
+
+        Debug.Log(
+            "Max Health เพิ่มเป็น: " +
+            maxHealth
+        );
     }
 }
