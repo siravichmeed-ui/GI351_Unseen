@@ -3,6 +3,10 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
+    [Header("Hit Sound")]
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioClip hitSound;
+
     [Header("Movement")]
     [SerializeField] private float moveSpeed = 5f;
 
@@ -41,6 +45,7 @@ public class PlayerController : MonoBehaviour
 
     private bool isUIOpen = false;
 
+    private bool isDead = false;
 
     // =====================================================
     // PUBLIC
@@ -71,6 +76,8 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
+        if (isDead)
+            return;
         // ถ้าเปิด UI อยู่
         if (isUIOpen)
         {
@@ -102,6 +109,15 @@ public class PlayerController : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (isDead)
+        {
+            if (rb != null)
+            {
+                rb.linearVelocity = Vector2.zero;
+            }
+
+            return;
+        }
         // หยุดการเดินตอนเปิด UI
         if (isUIOpen)
         {
@@ -252,6 +268,17 @@ public class PlayerController : MonoBehaviour
 
 
         currentHealth -= damage;
+        // =================================================
+        // HIT SOUND
+        // =================================================
+
+        if (audioSource != null &&
+            hitSound != null)
+        {
+            audioSource.PlayOneShot(
+                hitSound
+            );
+        }
 
 
         currentHealth =
@@ -398,9 +425,34 @@ public class PlayerController : MonoBehaviour
 
     private void Die()
     {
-        Debug.Log(
-            "PLAYER DEAD"
-        );
+        if (isDead)
+            return;
+
+        isDead = true;
+
+        Debug.Log("PLAYER DEAD");
+
+        movement = Vector2.zero;
+
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector2.zero;
+        }
+
+        // ปิด Collider ของ Player
+        Collider2D collider =
+            GetComponent<Collider2D>();
+
+        if (collider != null)
+        {
+            collider.enabled = false;
+        }
+
+        // แสดง Game Over
+        if (GameOverManager.Instance != null)
+        {
+            GameOverManager.Instance.ShowGameOver();
+        }
     }
     public void IncreaseMaxHealth(float amount)
     {

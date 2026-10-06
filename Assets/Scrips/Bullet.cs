@@ -8,6 +8,10 @@ public class Bullet : MonoBehaviour
     [SerializeField] private float lifeTime = 3f;
     [SerializeField] private float damage = 10f;
 
+    [Header("Hit Sound")]
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioClip hitSound;
+
     [Header("Hit Animation")]
     [SerializeField] private float hitAnimationTime = 0.1f;
 
@@ -58,6 +62,11 @@ public class Bullet : MonoBehaviour
         // ==========================================
 
         enemy.TakeDamage(damage);
+
+        if (audioSource != null && hitSound != null)
+        {
+            audioSource.PlayOneShot(hitSound);
+        }
 
 
         // ==========================================

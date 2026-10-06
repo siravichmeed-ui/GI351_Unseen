@@ -144,6 +144,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 603e0d258ea6a1e498d907d6ebd4529c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Enemy
+  scoreValue: 150
   maxHealth: 40
   moveSpeed: 4
   detectionRange: 8
@@ -158,6 +159,13 @@ MonoBehaviour:
   spriteFacing: 0
   contactDamage: 10
   attackCooldown: 0.5
+  audioSource: {fileID: 0}
+  detectSound: {fileID: 0}
+  attackSound: {fileID: 0}
+  hitSound: {fileID: 0}
+  deathSound: {fileID: 0}
+  moveSound: {fileID: 8300000, guid: fee7eaed76a46ca46b8c3c2073e7d49b, type: 3}
+  moveSoundInterval: 0.5
   useAttackAnimation: 1
   attackTriggerName: Attack
   attackStateName: Skeleton_Attack

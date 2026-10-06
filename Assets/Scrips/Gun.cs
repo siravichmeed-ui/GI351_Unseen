@@ -2,6 +2,10 @@ using UnityEngine;
 
 public class Gun : MonoBehaviour
 {
+    [Header("Sound")]
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioClip shootSound;
+
     [Header("Bullet")]
     [SerializeField] private GameObject bulletPrefab;
     [SerializeField] private Transform firePoint;
@@ -77,5 +81,10 @@ public class Gun : MonoBehaviour
                 firePoint.position,
                 firePoint.rotation
             );
+
+        if (audioSource != null && shootSound != null)
+        {
+            audioSource.PlayOneShot(shootSound);
+        }
     }
 }

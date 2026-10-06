@@ -17,6 +17,8 @@ public class Enemy : MonoBehaviour
         WallFollowing
     }
 
+    [Header("Score")]
+    [SerializeField] private int scoreValue = 100;
 
     // =====================================================
     // HEALTH
@@ -95,6 +97,25 @@ public class Enemy : MonoBehaviour
 
     [SerializeField] private float attackCooldown = 1f;
 
+    private bool isDead = false;
+
+    // =====================================================
+    // SOUND
+    // =====================================================
+
+    [Header("Sound")]
+    [SerializeField] private AudioSource audioSource;
+
+    [SerializeField] private AudioClip detectSound;
+    [SerializeField] private AudioClip attackSound;
+    [SerializeField] private AudioClip hitSound;
+    [SerializeField] private AudioClip deathSound;
+
+    [Header("Movement Sound")]
+    [SerializeField] private AudioClip moveSound;
+    [SerializeField] private float moveSoundInterval = 0.5f;
+
+    private float nextMoveSoundTime;
 
     // =====================================================
     // ATTACK ANIMATION
@@ -177,7 +198,16 @@ public class Enemy : MonoBehaviour
     private bool isAttacking = false;
 
     private bool hasAttackHit = false;
+    private void PlaySound(AudioClip clip)
+    {
+        if (audioSource == null)
+            return;
 
+        if (clip == null)
+            return;
+
+        audioSource.PlayOneShot(clip);
+    }
 
     // =====================================================
     // START
@@ -268,6 +298,18 @@ public class Enemy : MonoBehaviour
     private void FixedUpdate()
     {
         MoveTowardsPlayer();
+
+        if (hasDetectedPlayer &&
+        !isAttacking &&
+        Time.time >= nextMoveSoundTime &&
+        rb != null &&
+        rb.linearVelocity.magnitude > 0.1f)
+        {
+            PlaySound(moveSound);
+
+            nextMoveSoundTime =
+                Time.time + moveSoundInterval;
+        }
     }
 
 
@@ -847,6 +889,7 @@ public class Enemy : MonoBehaviour
                 Vector2.zero;
         }
 
+        PlaySound(attackSound);
 
         animator.ResetTrigger(
             attackTriggerName
@@ -1016,6 +1059,9 @@ public class Enemy : MonoBehaviour
         if (damage <= 0f)
             return;
 
+        // ถ้าตายแล้ว ไม่รับ Damage อีก
+        if (isDead)
+            return;
 
         currentHealth -=
             damage;
@@ -1226,17 +1272,30 @@ public class Enemy : MonoBehaviour
 
     private void Die()
     {
+        // ป้องกัน Die() ทำงานซ้ำ
+        if (isDead)
+            return;
+
+        isDead = true;
+
+        // =================================================
+        // ADD SCORE
+        // =================================================
+
+        if (ScoreManager.Instance != null)
+        {
+            ScoreManager.Instance.AddScore(scoreValue);
+            ScoreManager.Instance.AddEnemyDefeated();
+        }
+
         if (currentLightZone != null)
         {
             currentLightZone.RemoveEnemy(
                 this
             );
 
-
-            currentLightZone =
-                null;
+            currentLightZone = null;
         }
-
 
         // ดรอป EXP
         DropExp();
@@ -1253,9 +1312,15 @@ public class Enemy : MonoBehaviour
                 transform.position
             );
         }
+        // เล่นเสียงตาย
+        PlaySound(deathSound);
 
-
-        Destroy(gameObject);
+        // รอเสียงแล้วค่อยทำลาย
+        Destroy(
+            gameObject,
+            deathSound != null
+                ? deathSound.length
+                : 0f);
     }
 
 
