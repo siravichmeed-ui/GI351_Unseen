@@ -6,42 +6,46 @@ public class PlayerScanSkill : MonoBehaviour
 {
     [Header("Scan")]
     [SerializeField] private KeyCode scanKey = KeyCode.Q;
-
     [SerializeField] private float scanRange = 8f;
 
+    [Header("First Scan")]
+    [SerializeField] private bool firstScanFullMap = true;
 
     [Header("Scan Duration")]
     [SerializeField] private float scanDuration = 5f;
 
-
     [Header("Cooldown")]
     [SerializeField] private float cooldown = 15f;
-
     [SerializeField] private float minimumCooldown = 1f;
-
 
     [Header("Marker")]
     [SerializeField] private GameObject markerPrefab;
 
-
     [Header("Marker Parent")]
     [SerializeField] private Transform markerParent;
 
-
     [Header("Camera")]
     [SerializeField] private Camera targetCamera;
-
 
     [Header("Radar Effect")]
     [SerializeField] private RadarScanEffect radarEffect;
 
 
-    private bool isScanning;
+    // =====================================================
+    // STATE
+    // =====================================================
 
+    private bool isScanning;
     private bool isCooldown;
 
+    // เช็กว่าใช้ Scan ครั้งแรกไปแล้วหรือยัง
+    private bool hasUsedFirstScan = false;
 
-    // Object ที่ Radar เจอแล้ว
+    // เวลาที่เหลือของ Cooldown
+    private float cooldownRemaining = 0f;
+
+
+    // Object ที่ Scan เจอ
     private HashSet<ScanTarget> detectedTargets =
         new HashSet<ScanTarget>();
 
@@ -54,18 +58,14 @@ public class PlayerScanSkill : MonoBehaviour
     {
         if (targetCamera == null)
         {
-            targetCamera =
-                Camera.main;
+            targetCamera = Camera.main;
         }
 
 
         if (markerParent == null)
         {
             GameObject scanMarkers =
-                GameObject.Find(
-                    "ScanMarkers"
-                );
-
+                GameObject.Find("ScanMarkers");
 
             if (scanMarkers != null)
             {
@@ -121,6 +121,27 @@ public class PlayerScanSkill : MonoBehaviour
 
     private void Update()
     {
+        // =================================================
+        // UPDATE COOLDOWN
+        // =================================================
+
+        if (cooldownRemaining > 0f)
+        {
+            cooldownRemaining -=
+                Time.unscaledDeltaTime;
+
+            cooldownRemaining =
+                Mathf.Max(
+                    0f,
+                    cooldownRemaining
+                );
+        }
+
+
+        // =================================================
+        // SCAN INPUT
+        // =================================================
+
         if (Input.GetKeyDown(scanKey))
         {
             TryUseScan();
@@ -134,12 +155,14 @@ public class PlayerScanSkill : MonoBehaviour
 
     private void TryUseScan()
     {
+        // กำลัง Scan อยู่
         if (isScanning)
         {
             return;
         }
 
 
+        // กำลัง Cooldown
         if (isCooldown)
         {
             return;
@@ -158,8 +181,7 @@ public class PlayerScanSkill : MonoBehaviour
 
     private IEnumerator ScanRoutine()
     {
-        isScanning =
-            true;
+        isScanning = true;
 
 
         Debug.Log(
@@ -167,12 +189,33 @@ public class PlayerScanSkill : MonoBehaviour
         );
 
 
-        // ล้าง Object ที่เคยเจอจาก Scan รอบก่อน
+        // ล้าง Target จาก Scan ก่อนหน้า
         detectedTargets.Clear();
 
 
         // =================================================
-        // ตั้ง Radar
+        // FIRST SCAN
+        // =================================================
+
+        if (
+            firstScanFullMap &&
+            !hasUsedFirstScan
+        )
+        {
+            Debug.Log(
+                "========== FIRST SCAN : FULL MAP =========="
+            );
+        }
+        else
+        {
+            Debug.Log(
+                "========== NORMAL SCAN : RANGE =========="
+            );
+        }
+
+
+        // =================================================
+        // RADAR
         // =================================================
 
         if (radarEffect != null)
@@ -181,56 +224,73 @@ public class PlayerScanSkill : MonoBehaviour
                 scanRange
             );
 
-
             radarEffect.PlayRadar();
         }
 
 
         // =================================================
-        // ระยะเวลาที่ Radar ทำงาน
+        // FIRST SCAN = FULL MAP
         // =================================================
 
-        float radarTime = 0f;
-
-
-        float radarDuration =
-            radarEffect != null
-                ? radarEffect.GetDuration()
-                : 0f;
-
-
-        // =================================================
-        // RADAR กำลังขยาย
-        // =================================================
-
-        while (
-            radarTime <
-            radarDuration
+        if (
+            firstScanFullMap &&
+            !hasUsedFirstScan
         )
         {
-            radarTime +=
-                Time.deltaTime;
-
-
-            // คำนวณรัศมีปัจจุบัน
-            float currentRadius =
-                radarEffect.GetCurrentRadius(
-                    radarTime
-                );
-
-
-            // ตรวจ Object ที่ Radar ไปถึงแล้ว
-            CheckTargetsInRadar(
-                currentRadius
-            );
-
-
-            yield return null;
+            ScanEntireMap();
         }
 
 
         // =================================================
-        // RADAR จบแล้ว
+        // NORMAL SCAN = RANGE
+        // =================================================
+
+        else
+        {
+            float radarTime = 0f;
+
+            float radarDuration =
+                radarEffect != null
+                    ? radarEffect.GetDuration()
+                    : 0f;
+
+
+            while (
+                radarTime <
+                radarDuration
+            )
+            {
+                radarTime +=
+                    Time.deltaTime;
+
+
+                // หารัศมีปัจจุบันของ Radar
+                float currentRadius =
+                    radarEffect.GetCurrentRadius(
+                        radarTime
+                    );
+
+
+                // ตรวจ Target ที่อยู่ในระยะ
+                CheckTargetsInRadar(
+                    currentRadius
+                );
+
+
+                yield return null;
+            }
+        }
+
+
+        // =================================================
+        // FIRST SCAN USED
+        // =================================================
+
+        hasUsedFirstScan = true;
+
+
+        // =================================================
+        // RADAR FINISHED
         // =================================================
 
         Debug.Log(
@@ -239,14 +299,14 @@ public class PlayerScanSkill : MonoBehaviour
 
 
         // =================================================
-        // แสดง ? เฉพาะ Object ที่ Radar เจอ
+        // SHOW MARKERS
         // =================================================
 
         ShowDetectedMarkers();
 
 
         // =================================================
-        // รอเวลาที่ ? จะแสดง
+        // MARKER DISPLAY TIME
         // =================================================
 
         yield return new WaitForSecondsRealtime(
@@ -255,14 +315,13 @@ public class PlayerScanSkill : MonoBehaviour
 
 
         // =================================================
-        // ลบ ?
+        // REMOVE MARKERS
         // =================================================
 
         RemoveScanMarkers();
 
 
-        isScanning =
-            false;
+        isScanning = false;
 
 
         Debug.Log(
@@ -271,7 +330,7 @@ public class PlayerScanSkill : MonoBehaviour
 
 
         // =================================================
-        // Cooldown
+        // START COOLDOWN
         // =================================================
 
         StartCoroutine(
@@ -281,7 +340,59 @@ public class PlayerScanSkill : MonoBehaviour
 
 
     // =====================================================
-    // CHECK TARGETS
+    // FIRST SCAN - FULL MAP
+    // =====================================================
+
+    private void ScanEntireMap()
+    {
+        if (
+            ScanTarget.AllTargets ==
+            null
+        )
+        {
+            return;
+        }
+
+
+        for (
+            int i = 0;
+            i < ScanTarget.AllTargets.Count;
+            i++
+        )
+        {
+            ScanTarget target =
+                ScanTarget.AllTargets[i];
+
+
+            if (target == null)
+            {
+                continue;
+            }
+
+
+            // Target ที่ไม่อนุญาตให้ Scan
+            if (!target.CanBeScanned())
+            {
+                continue;
+            }
+
+
+            // เพิ่ม Target เข้า List
+            detectedTargets.Add(
+                target
+            );
+
+
+            Debug.Log(
+                "FIRST SCAN FOUND: " +
+                target.name
+            );
+        }
+    }
+
+
+    // =====================================================
+    // NORMAL SCAN - CHECK TARGETS
     // =====================================================
 
     private void CheckTargetsInRadar(
@@ -313,7 +424,7 @@ public class PlayerScanSkill : MonoBehaviour
             }
 
 
-            // ถ้าเจอไปแล้ว ไม่ต้องตรวจซ้ำ
+            // ถ้าเจอแล้ว ไม่ต้องตรวจซ้ำ
             if (
                 detectedTargets.Contains(
                     target
@@ -332,7 +443,7 @@ public class PlayerScanSkill : MonoBehaviour
 
 
             // =================================================
-            // หาระยะจาก Player ไป Target
+            // DISTANCE
             // =================================================
 
             float distance =
@@ -343,7 +454,7 @@ public class PlayerScanSkill : MonoBehaviour
 
 
             // =================================================
-            // Radar ไปถึง Target แล้ว
+            // RADAR REACHED TARGET
             // =================================================
 
             if (
@@ -436,17 +547,30 @@ public class PlayerScanSkill : MonoBehaviour
 
     private IEnumerator CooldownRoutine()
     {
-        isCooldown =
-            true;
+        isCooldown = true;
 
 
-        yield return new WaitForSecondsRealtime(
-            cooldown
+        // ตั้งเวลาเริ่มต้น
+        cooldownRemaining = cooldown;
+
+
+        Debug.Log(
+            "========== SCAN COOLDOWN =========="
         );
 
 
-        isCooldown =
-            false;
+        // รอจนกว่าจะหมด Cooldown
+        while (
+            cooldownRemaining > 0f
+        )
+        {
+            yield return null;
+        }
+
+
+        cooldownRemaining = 0f;
+
+        isCooldown = false;
 
 
         Debug.Log(
@@ -538,6 +662,12 @@ public class PlayerScanSkill : MonoBehaviour
     public float GetCooldown()
     {
         return cooldown;
+    }
+
+
+    public float GetCooldownRemaining()
+    {
+        return cooldownRemaining;
     }
 
 

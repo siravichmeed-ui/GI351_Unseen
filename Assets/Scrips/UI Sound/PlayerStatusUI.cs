@@ -31,6 +31,17 @@ public class PlayerStatusUI : MonoBehaviour
 
 
     // =====================================================
+    // FILL IMAGES
+    // =====================================================
+
+    private Image hpFillImage;
+
+    private Image expFillImage;
+
+    private Image lightFillImage;
+
+
+    // =====================================================
     // START
     // =====================================================
 
@@ -39,6 +50,8 @@ public class PlayerStatusUI : MonoBehaviour
         FindPlayerComponents();
 
         SetupBars();
+
+        SetupFillImages();
 
         UpdateUI();
     }
@@ -135,6 +148,40 @@ public class PlayerStatusUI : MonoBehaviour
 
 
     // =====================================================
+    // SETUP FILL IMAGES
+    // =====================================================
+
+    private void SetupFillImages()
+    {
+        // HP Fill
+        if (hpBar != null &&
+            hpBar.fillRect != null)
+        {
+            hpFillImage =
+                hpBar.fillRect.GetComponent<Image>();
+        }
+
+
+        // EXP Fill
+        if (expBar != null &&
+            expBar.fillRect != null)
+        {
+            expFillImage =
+                expBar.fillRect.GetComponent<Image>();
+        }
+
+
+        // LIGHT Fill
+        if (lightBar != null &&
+            lightBar.fillRect != null)
+        {
+            lightFillImage =
+                lightBar.fillRect.GetComponent<Image>();
+        }
+    }
+
+
+    // =====================================================
     // UPDATE UI
     // =====================================================
 
@@ -172,6 +219,11 @@ public class PlayerStatusUI : MonoBehaviour
         {
             hpBar.value = 0f;
 
+            if (hpFillImage != null)
+            {
+                hpFillImage.enabled = false;
+            }
+
             return;
         }
 
@@ -181,13 +233,27 @@ public class PlayerStatusUI : MonoBehaviour
 
 
         float healthPercent =
-            currentHealth / maxHealth;
+            currentHealth /
+            maxHealth;
 
 
-        hpBar.value =
+        float healthValue =
             Mathf.Clamp01(
                 healthPercent
             );
+
+
+        // HP Slider
+        hpBar.value =
+            healthValue;
+
+
+        // HP Fill
+        if (hpFillImage != null)
+        {
+            hpFillImage.enabled =
+                healthValue > 0.001f;
+        }
     }
 
 
@@ -213,6 +279,11 @@ public class PlayerStatusUI : MonoBehaviour
         {
             expBar.value = 0f;
 
+            if (expFillImage != null)
+            {
+                expFillImage.enabled = false;
+            }
+
             return;
         }
 
@@ -222,32 +293,27 @@ public class PlayerStatusUI : MonoBehaviour
 
 
         float expPercent =
-            currentExp / expNeeded;
+            currentExp /
+            expNeeded;
 
 
-        expBar.value =
+        float expValue =
             Mathf.Clamp01(
                 expPercent
             );
-    }
 
 
-    // =====================================================
-    // LEVEL
-    // =====================================================
-
-    private void UpdateLevel()
-    {
-        if (levelText == null)
-            return;
+        // EXP Slider
+        expBar.value =
+            expValue;
 
 
-        if (playerLevel == null)
-            return;
-
-
-        levelText.text =
-            "Lv. " + playerLevel.Level;
+        // EXP Fill
+        if (expFillImage != null)
+        {
+            expFillImage.enabled =
+                expValue > 0.001f;
+        }
     }
 
 
@@ -271,11 +337,19 @@ public class PlayerStatusUI : MonoBehaviour
             );
 
 
-        // Light Bar
+        // Light Slider
         if (lightBar != null)
         {
             lightBar.value =
                 lightValue;
+        }
+
+
+        // Light Fill
+        if (lightFillImage != null)
+        {
+            lightFillImage.enabled =
+                lightValue > 0.001f;
         }
 
 
@@ -289,5 +363,25 @@ public class PlayerStatusUI : MonoBehaviour
                     lightValue
                 );
         }
+    }
+
+
+    // =====================================================
+    // LEVEL
+    // =====================================================
+
+    private void UpdateLevel()
+    {
+        if (levelText == null)
+            return;
+
+
+        if (playerLevel == null)
+            return;
+
+
+        levelText.text =
+            "Lv. " +
+            playerLevel.Level;
     }
 }

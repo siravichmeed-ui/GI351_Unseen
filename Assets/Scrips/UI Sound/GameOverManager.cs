@@ -11,6 +11,7 @@ public class GameOverManager : MonoBehaviour
 
     [Header("Result")]
     [SerializeField] private TMP_Text scoreText;
+    [SerializeField] private TMP_Text finalScoreText;
     [SerializeField] private TMP_Text survivalTimeText;
     [SerializeField] private TMP_Text enemiesDefeatedText;
 
@@ -29,24 +30,55 @@ public class GameOverManager : MonoBehaviour
         Time.timeScale = 1f;
     }
 
+    // =====================================================
+    // GAME OVER
+    // =====================================================
+
     public void ShowGameOver()
     {
+        if (ScoreManager.Instance == null)
+            return;
+
+        // =================================================
+        // STOP SCORE TIME
+        // =================================================
+
+        ScoreManager.Instance.StopSurvivalTime();
+
+        // =================================================
+        // SHOW PANEL
+        // =================================================
+
         if (gameOverPanel != null)
         {
             gameOverPanel.SetActive(true);
         }
 
-        // Score
-        if (scoreText != null &&
-            ScoreManager.Instance != null)
+        // =================================================
+        // RAW SCORE
+        // =================================================
+
+        if (scoreText != null)
         {
             scoreText.text =
                 ScoreManager.Instance.Score.ToString();
         }
 
-        // Survival Time
-        if (survivalTimeText != null &&
-            ScoreManager.Instance != null)
+        // =================================================
+        // FINAL SCORE
+        // =================================================
+
+        if (finalScoreText != null)
+        {
+            finalScoreText.text =
+                ScoreManager.Instance.FinalScore.ToString();
+        }
+
+        // =================================================
+        // SURVIVAL TIME
+        // =================================================
+
+        if (survivalTimeText != null)
         {
             survivalTimeText.text =
                 FormatTime(
@@ -54,22 +86,27 @@ public class GameOverManager : MonoBehaviour
                 );
         }
 
-        // Enemies Defeated
-        if (enemiesDefeatedText != null &&
-            ScoreManager.Instance != null)
+        // =================================================
+        // ENEMIES DEFEATED
+        // =================================================
+
+        if (enemiesDefeatedText != null)
         {
             enemiesDefeatedText.text =
                 ScoreManager.Instance.EnemiesDefeated.ToString();
         }
 
-        // หยุดการนับเวลา
-        if (ScoreManager.Instance != null)
-        {
-            ScoreManager.Instance.StopSurvivalTime();
-        }
+        // =================================================
+        // STOP GAME
+        // =================================================
 
         Time.timeScale = 0f;
     }
+
+    // =====================================================
+    // FORMAT TIME
+    // =====================================================
+
     private string FormatTime(float time)
     {
         int minutes =
@@ -84,14 +121,24 @@ public class GameOverManager : MonoBehaviour
             seconds
         );
     }
+
+    // =====================================================
     // QUIT
+    // =====================================================
+
     public void Quit()
     {
         Debug.Log("QUIT BUTTON WORK");
+
         Time.timeScale = 1f;
 
         SceneManager.LoadScene(0);
     }
+
+    // =====================================================
+    // RESTART
+    // =====================================================
+
     public void Restart()
     {
         Time.timeScale = 1f;

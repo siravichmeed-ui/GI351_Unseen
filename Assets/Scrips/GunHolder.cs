@@ -5,13 +5,10 @@ public class GunHolder : MonoBehaviour
     [Header("Gun Position")]
     [SerializeField] private float distanceFromPlayer = 1f;
 
-
     [Header("Gun")]
     [SerializeField] private Transform gun;
 
-
     private Camera mainCamera;
-
 
     // =====================================================
     // UI LOCK
@@ -19,6 +16,11 @@ public class GunHolder : MonoBehaviour
 
     private bool canControlGun = true;
 
+    // =====================================================
+    // PLAYER
+    // =====================================================
+
+    private PlayerController playerController;
 
     // =====================================================
     // START
@@ -28,8 +30,10 @@ public class GunHolder : MonoBehaviour
     {
         mainCamera =
             Camera.main;
-    }
 
+        playerController =
+            FindFirstObjectByType<PlayerController>();
+    }
 
     // =====================================================
     // UPDATE
@@ -37,27 +41,32 @@ public class GunHolder : MonoBehaviour
 
     private void Update()
     {
+        // ถ้า Player ตายแล้ว
+        // ห้ามควบคุมปืน
+        if (playerController != null &&
+            playerController.IsDead)
+        {
+            return;
+        }
+
+        // ถ้าถูกล็อกโดย UI
         if (!canControlGun)
             return;
-
 
         RotateAroundPlayer();
 
         FlipGun();
     }
 
-
     // =====================================================
     // SET CONTROL
     // =====================================================
 
     public void SetCanControlGun(
-        bool value
-    )
+        bool value)
     {
         canControlGun = value;
     }
-
 
     // =====================================================
     // ROTATE AROUND PLAYER
@@ -68,32 +77,25 @@ public class GunHolder : MonoBehaviour
         if (mainCamera == null)
             return;
 
-
         Vector3 mousePosition =
             Input.mousePosition;
-
 
         Vector3 mouseWorldPosition =
             mainCamera.ScreenToWorldPoint(
                 mousePosition
             );
 
-
         mouseWorldPosition.z =
             transform.parent.position.z;
-
 
         Vector2 direction =
             mouseWorldPosition -
             transform.parent.position;
 
-
         if (direction.sqrMagnitude < 0.001f)
             return;
 
-
         direction.Normalize();
-
 
         // ตำแหน่ง GunHolder
         transform.position =
@@ -103,7 +105,6 @@ public class GunHolder : MonoBehaviour
                 distanceFromPlayer
             );
 
-
         // มุมของปืน
         float angle =
             Mathf.Atan2(
@@ -111,7 +112,6 @@ public class GunHolder : MonoBehaviour
                 direction.x
             ) *
             Mathf.Rad2Deg;
-
 
         transform.rotation =
             Quaternion.Euler(
@@ -121,7 +121,6 @@ public class GunHolder : MonoBehaviour
             );
     }
 
-
     // =====================================================
     // FLIP GUN
     // =====================================================
@@ -130,7 +129,6 @@ public class GunHolder : MonoBehaviour
     {
         if (gun == null)
             return;
-
 
         // ถ้า Gun อยู่ทางซ้ายของ Player
         if (
@@ -145,7 +143,6 @@ public class GunHolder : MonoBehaviour
                     1f
                 );
         }
-
 
         // ถ้า Gun อยู่ทางขวาของ Player
         else

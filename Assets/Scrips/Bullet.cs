@@ -15,26 +15,25 @@ public class Bullet : MonoBehaviour
     [Header("Hit Animation")]
     [SerializeField] private float hitAnimationTime = 0.1f;
 
+    [Header("Wall")]
+    [SerializeField] private LayerMask wallLayer;
+
     private Animator animator;
 
     private bool hasHit = false;
-
 
     private void Awake()
     {
         animator = GetComponent<Animator>();
     }
 
-
     private void Start()
     {
         Destroy(gameObject, lifeTime);
     }
 
-
     private void Update()
     {
-        // ถ้าชนแล้ว หยุดการเคลื่อนที่
         if (hasHit)
             return;
 
@@ -44,53 +43,65 @@ public class Bullet : MonoBehaviour
             Time.deltaTime;
     }
 
-
     private void OnTriggerEnter2D(Collider2D other)
     {
         if (hasHit)
             return;
 
-        Enemy enemy =
-            other.GetComponent<Enemy>();
+        // =================================================
+        // ENEMY
+        // =================================================
 
-        if (enemy == null)
+        Enemy enemy = other.GetComponent<Enemy>();
+
+        if (enemy != null)
+        {
+            enemy.TakeDamage(damage);
+
+            PlayHit();
+
             return;
+        }
 
+        // =================================================
+        // WALL
+        // =================================================
 
-        // ==========================================
-        // DAMAGE ENEMY
-        // ==========================================
+        if (((1 << other.gameObject.layer) & wallLayer) != 0)
+        {
+            PlayHit();
 
-        enemy.TakeDamage(damage);
+            return;
+        }
+    }
 
-        if (audioSource != null && hitSound != null)
+    // =====================================================
+    // HIT
+    // =====================================================
+
+    private void PlayHit()
+    {
+        hasHit = true;
+
+        if (audioSource != null &&
+            hitSound != null)
         {
             audioSource.PlayOneShot(hitSound);
         }
-
-
-        // ==========================================
-        // PLAY HIT ANIMATION
-        // ==========================================
-
-        hasHit = true;
-
 
         if (animator != null)
         {
             animator.SetTrigger("Hit");
         }
 
-
-        // ==========================================
-        // DESTROY AFTER ANIMATION
-        // ==========================================
-
         StartCoroutine(
             DestroyAfterHit()
         );
     }
 
+    // =====================================================
+    // DESTROY
+    // =====================================================
 
     private IEnumerator DestroyAfterHit()
     {

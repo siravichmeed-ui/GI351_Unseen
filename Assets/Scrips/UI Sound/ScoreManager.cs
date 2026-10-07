@@ -4,23 +4,56 @@ public class ScoreManager : MonoBehaviour
 {
     public static ScoreManager Instance;
 
-    [Header("Score")]
+    [Header("Raw Score")]
     [SerializeField] private int score = 0;
 
     [Header("Survival Time")]
     [SerializeField] private float survivalTime = 0f;
 
+    [Header("Final Score")]
+    [SerializeField] private int timeScoreMultiplier = 10;
+
     [Header("Enemies")]
     [SerializeField] private int enemiesDefeated = 0;
+
     public int Score => score;
 
     public float SurvivalTime =>
         survivalTime;
 
     public int EnemiesDefeated =>
-       enemiesDefeated;
+        enemiesDefeated;
+
+    // =====================================================
+    // TIME BONUS
+    // =====================================================
+
+    public int TimeBonus
+    {
+        get
+        {
+            return Mathf.FloorToInt(survivalTime) *
+                   timeScoreMultiplier;
+        }
+    }
+
+    // =====================================================
+    // FINAL SCORE
+    // =====================================================
+
+    public int FinalScore
+    {
+        get
+        {
+            return score + TimeBonus;
+        }
+    }
 
     private bool isGameOver = false;
+
+    // =====================================================
+    // AWAKE
+    // =====================================================
 
     private void Awake()
     {
@@ -31,10 +64,17 @@ public class ScoreManager : MonoBehaviour
         else
         {
             Destroy(gameObject);
+            return;
         }
+
         survivalTime = 0f;
         isGameOver = false;
     }
+
+    // =====================================================
+    // UPDATE
+    // =====================================================
+
     private void Update()
     {
         if (isGameOver)
@@ -42,6 +82,11 @@ public class ScoreManager : MonoBehaviour
 
         survivalTime += Time.deltaTime;
     }
+
+    // =====================================================
+    // ADD RAW SCORE
+    // =====================================================
+
     public void AddScore(int amount)
     {
         if (amount <= 0)
@@ -49,16 +94,12 @@ public class ScoreManager : MonoBehaviour
 
         score += amount;
 
-        Debug.Log("Score: " + score);
+        Debug.Log(
+            "Raw Score: " +
+            score
+        );
     }
 
-    public void ResetScore()
-    {
-        score = 0;
-        enemiesDefeated = 0;
-        survivalTime = 0f;
-        isGameOver = false;
-    }
     // =====================================================
     // ENEMY DEFEATED
     // =====================================================
@@ -72,8 +113,9 @@ public class ScoreManager : MonoBehaviour
             enemiesDefeated
         );
     }
+
     // =====================================================
-    // SURVIVAL TIME
+    // STOP SURVIVAL TIME
     // =====================================================
 
     public void StopSurvivalTime()
@@ -81,7 +123,15 @@ public class ScoreManager : MonoBehaviour
         isGameOver = true;
     }
 
+    // =====================================================
+    // RESET
+    // =====================================================
 
-
-
+    public void ResetScore()
+    {
+        score = 0;
+        enemiesDefeated = 0;
+        survivalTime = 0f;
+        isGameOver = false;
+    }
 }

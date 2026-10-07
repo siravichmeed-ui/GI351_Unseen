@@ -18,10 +18,39 @@ public class EnemySpawner : MonoBehaviour
     [Header("Enemy Spawn Settings")]
     [SerializeField] private float spawnInterval = 2f;
 
-    [SerializeField] private int maxEnemies = 5;
+    [SerializeField] private int maxEnemies = 8;
 
 
     private float nextSpawnTime;
+
+
+    // =====================================================
+    // ENEMY DENSITY
+    // =====================================================
+
+    [Header("Enemy Density")]
+    [SerializeField] private Transform player;
+
+    [SerializeField] private float densityRadius = 15f;
+
+    [SerializeField] private int minimumNearbyEnemies = 2;
+
+
+    // =====================================================
+    // GUARANTEED ENEMY
+    // =====================================================
+
+    [Header("Guaranteed Enemy")]
+    [SerializeField] private int guaranteedSpawnAmount = 2;
+
+    [SerializeField] private float guaranteedSpawnCooldown = 8f;
+
+    [SerializeField] private float minimumSpawnDistance = 8f;
+
+    [SerializeField] private float maximumSpawnDistance = 18f;
+
+
+    private float nextGuaranteedSpawnTime;
 
 
     // =====================================================
@@ -63,8 +92,27 @@ public class EnemySpawner : MonoBehaviour
 
     private void Start()
     {
+        // หา Player อัตโนมัติ
+        if (player == null)
+        {
+            PlayerController playerController =
+                FindFirstObjectByType<PlayerController>();
+
+            if (playerController != null)
+            {
+                player =
+                    playerController.transform;
+            }
+        }
+
+
         // Spawn Light Item ตอนเริ่มเกม
         SpawnInitialLightItems();
+
+
+        // อนุญาตให้ Guaranteed Spawn ได้เร็ว ๆ
+        nextGuaranteedSpawnTime =
+            Time.time + 3f;
     }
 
 
@@ -76,6 +124,10 @@ public class EnemySpawner : MonoBehaviour
     {
         // Enemy Spawn
         UpdateEnemySpawner();
+
+
+        // Enemy Density
+        UpdateEnemyDensity();
 
 
         // Light Item Spawn
@@ -116,7 +168,345 @@ public class EnemySpawner : MonoBehaviour
 
 
     // =====================================================
-    // SPAWN ENEMY
+    // ENEMY DENSITY
+    // =====================================================
+
+    private void UpdateEnemyDensity()
+    {
+        // ไม่มี Player
+        if (player == null)
+        {
+            return;
+        }
+
+
+        // ถ้า Enemy ทั้งแมพเต็มแล้ว
+        int currentEnemyCount =
+            GetCurrentEnemyCount();
+
+        if (
+            currentEnemyCount >=
+            maxEnemies
+        )
+        {
+            return;
+        }
+
+
+        // นับ Enemy ที่อยู่ใกล้ Player
+        int nearbyEnemyCount =
+            GetNearbyEnemyCount();
+
+
+        // ถ้ามี Enemy ใกล้พอแล้ว
+        if (
+            nearbyEnemyCount >=
+            minimumNearbyEnemies
+        )
+        {
+            return;
+        }
+
+
+        // ยังไม่ถึงเวลาส่ง Enemy เพิ่ม
+        if (
+            Time.time <
+            nextGuaranteedSpawnTime
+        )
+        {
+            return;
+        }
+
+
+        // =================================================
+        // คำนวณจำนวน Enemy ที่ต้องเพิ่ม
+        // =================================================
+
+        int enemiesNeeded =
+            minimumNearbyEnemies -
+            nearbyEnemyCount;
+
+
+        // จำกัดไม่ให้ส่งเกินจำนวนที่กำหนด
+        int spawnAmount =
+            Mathf.Min(
+                enemiesNeeded,
+                guaranteedSpawnAmount
+            );
+
+
+        // จำกัดด้วย Max Enemies
+        int availableEnemySlots =
+            maxEnemies -
+            currentEnemyCount;
+
+
+        spawnAmount =
+            Mathf.Min(
+                spawnAmount,
+                availableEnemySlots
+            );
+
+
+        if (
+            spawnAmount <= 0
+        )
+        {
+            return;
+        }
+
+
+        // =================================================
+        // Spawn Enemy เข้าหา Player
+        // =================================================
+
+        int spawnedAmount = 0;
+
+        for (
+            int i = 0;
+            i < spawnAmount;
+            i++
+        )
+        {
+            if (
+                SpawnGuaranteedEnemy()
+            )
+            {
+                spawnedAmount++;
+            }
+        }
+
+
+        // ตั้ง Cooldown ใหม่
+        if (
+            spawnedAmount > 0
+        )
+        {
+            nextGuaranteedSpawnTime =
+                Time.time +
+                guaranteedSpawnCooldown;
+        }
+    }
+
+
+    // =====================================================
+    // COUNT NEARBY ENEMIES
+    // =====================================================
+
+    private int GetNearbyEnemyCount()
+    {
+        if (player == null)
+        {
+            return 0;
+        }
+
+
+        Enemy[] enemies =
+            FindObjectsByType<Enemy>(
+                FindObjectsSortMode.None
+            );
+
+
+        int count = 0;
+
+
+        for (
+            int i = 0;
+            i < enemies.Length;
+            i++
+        )
+        {
+            Enemy enemy =
+                enemies[i];
+
+
+            if (enemy == null)
+            {
+                continue;
+            }
+
+
+            float distance =
+                Vector2.Distance(
+                    player.position,
+                    enemy.transform.position
+                );
+
+
+            if (
+                distance <=
+                densityRadius
+            )
+            {
+                count++;
+            }
+        }
+
+
+        return count;
+    }
+
+
+    // =====================================================
+    // GUARANTEED SPAWN
+    // =====================================================
+
+    private bool SpawnGuaranteedEnemy()
+    {
+        if (
+            enemyPrefabs == null ||
+            enemyPrefabs.Length == 0
+        )
+        {
+            Debug.LogWarning(
+                "EnemySpawner: ยังไม่ได้ใส่ Enemy Prefab"
+            );
+
+            return false;
+        }
+
+
+        if (
+            spawnPoints == null ||
+            spawnPoints.Length == 0
+        )
+        {
+            Debug.LogWarning(
+                "EnemySpawner: ยังไม่ได้ใส่ Enemy Spawn Point"
+            );
+
+            return false;
+        }
+
+
+        if (player == null)
+        {
+            return false;
+        }
+
+
+        // =================================================
+        // หาจุด Spawn ที่เหมาะกับ Player
+        // =================================================
+
+        List<Transform> validSpawnPoints =
+            new List<Transform>();
+
+
+        for (
+            int i = 0;
+            i < spawnPoints.Length;
+            i++
+        )
+        {
+            Transform point =
+                spawnPoints[i];
+
+
+            if (point == null)
+            {
+                continue;
+            }
+
+
+            float distance =
+                Vector2.Distance(
+                    player.position,
+                    point.position
+                );
+
+
+            // ต้องไม่ใกล้เกินไป
+            if (
+                distance <
+                minimumSpawnDistance
+            )
+            {
+                continue;
+            }
+
+
+            // ต้องไม่ไกลเกินไป
+            if (
+                distance >
+                maximumSpawnDistance
+            )
+            {
+                continue;
+            }
+
+
+            validSpawnPoints.Add(
+                point
+            );
+        }
+
+
+        // ไม่มี Spawn Point ที่เหมาะสม
+        if (
+            validSpawnPoints.Count == 0
+        )
+        {
+            return false;
+        }
+
+
+        // =================================================
+        // สุ่ม Enemy
+        // =================================================
+
+        int randomEnemyIndex =
+            Random.Range(
+                0,
+                enemyPrefabs.Length
+            );
+
+
+        GameObject selectedEnemy =
+            enemyPrefabs[
+                randomEnemyIndex
+            ];
+
+
+        // =================================================
+        // สุ่ม Spawn Point
+        // =================================================
+
+        int randomSpawnIndex =
+            Random.Range(
+                0,
+                validSpawnPoints.Count
+            );
+
+
+        Transform selectedSpawnPoint =
+            validSpawnPoints[
+                randomSpawnIndex
+            ];
+
+
+        // =================================================
+        // สร้าง Enemy
+        // =================================================
+
+        Instantiate(
+            selectedEnemy,
+            selectedSpawnPoint.position,
+            Quaternion.identity
+        );
+
+
+        Debug.Log(
+            "Guaranteed Enemy Spawned Near Player"
+        );
+
+
+        return true;
+    }
+
+
+    // =====================================================
+    // NORMAL SPAWN ENEMY
     // =====================================================
 
     private void SpawnEnemy()
@@ -538,6 +928,40 @@ public class EnemySpawner : MonoBehaviour
 
         Debug.Log(
             "Enemy dropped Health Potion!"
+        );
+    }
+
+
+    // =====================================================
+    // GIZMOS
+    // =====================================================
+
+    private void OnDrawGizmosSelected()
+    {
+        if (player == null)
+        {
+            return;
+        }
+
+
+        // Density Radius
+        Gizmos.DrawWireSphere(
+            player.position,
+            densityRadius
+        );
+
+
+        // Minimum Spawn Distance
+        Gizmos.DrawWireSphere(
+            player.position,
+            minimumSpawnDistance
+        );
+
+
+        // Maximum Spawn Distance
+        Gizmos.DrawWireSphere(
+            player.position,
+            maximumSpawnDistance
         );
     }
 }

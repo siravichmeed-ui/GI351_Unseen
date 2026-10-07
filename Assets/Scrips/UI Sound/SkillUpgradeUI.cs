@@ -1,151 +1,85 @@
-using UnityEngine;
-using UnityEngine.UI;
 using TMPro;
+using UnityEngine;
 
 public class SkillUpgradeUI : MonoBehaviour
 {
-    [Header("Upgrade Panel")]
+    [Header("Panel")]
     [SerializeField] private GameObject upgradePanel;
-
 
     [Header("Skill Point")]
     [SerializeField] private TMP_Text skillPointText;
 
-
-    [Header("HP UI")]
+    [Header("HP")]
     [SerializeField] private TMP_Text hpLevelText;
     [SerializeField] private TMP_Text hpValueText;
 
-
-    [Header("Scan Range UI")]
+    [Header("Scan Range")]
     [SerializeField] private TMP_Text scanRangeLevelText;
     [SerializeField] private TMP_Text scanRangeValueText;
 
-
-    [Header("Scan Cooldown UI")]
+    [Header("Scan Cooldown")]
     [SerializeField] private TMP_Text scanCooldownLevelText;
     [SerializeField] private TMP_Text scanCooldownValueText;
 
+    private PlayerController playerController;
+    private PlayerLevel playerLevel;
+    private PlayerSkillUpgrade playerSkillUpgrade;
+    private PlayerScanSkill playerScanSkill;
 
-    [Header("Player")]
-    [SerializeField] private PlayerController playerController;
+    private Gun gun;
+    private GunHolder gunHolder;
 
-    [SerializeField] private PlayerLevel playerLevel;
-
-    [SerializeField] private PlayerSkillUpgrade playerSkillUpgrade;
-
-    [SerializeField] private PlayerScanSkill playerScanSkill;
-
-
-    private bool isOpen = false;
-
-
-    // =====================================================
-    // START
-    // =====================================================
+    private bool isOpen;
 
     private void Start()
     {
+        playerController = FindFirstObjectByType<PlayerController>();
+        playerLevel = FindFirstObjectByType<PlayerLevel>();
+        playerSkillUpgrade = FindFirstObjectByType<PlayerSkillUpgrade>();
+        playerScanSkill = FindFirstObjectByType<PlayerScanSkill>();
+
         if (upgradePanel != null)
         {
             upgradePanel.SetActive(false);
         }
 
-
-        FindPlayerComponents();
-
+        isOpen = false;
 
         SetControlState(false);
-
 
         UpdateAllUI();
     }
 
-
-    // =====================================================
-    // UPDATE
-    // =====================================================
-
     private void Update()
     {
+        // กด E เปิด/ปิด Skill Upgrade
         if (Input.GetKeyDown(KeyCode.E))
         {
             ToggleUpgradePanel();
         }
-    }
 
-
-    // =====================================================
-    // FIND PLAYER COMPONENTS
-    // =====================================================
-
-    private void FindPlayerComponents()
-    {
-        GameObject player =
-            GameObject.FindGameObjectWithTag("Player");
-
-
-        if (player == null)
+        // อัปเดต HP แบบ Real-time
+        if (isOpen)
         {
-            Debug.LogWarning(
-                "SkillUpgradeUI: หา Player ไม่เจอ"
-            );
-
-            return;
-        }
-
-
-        // PlayerController
-        if (playerController == null)
-        {
-            playerController =
-                player.GetComponent<PlayerController>();
-        }
-
-
-        // PlayerLevel
-        if (playerLevel == null)
-        {
-            playerLevel =
-                player.GetComponent<PlayerLevel>();
-        }
-
-
-        // PlayerSkillUpgrade
-        if (playerSkillUpgrade == null)
-        {
-            playerSkillUpgrade =
-                player.GetComponent<PlayerSkillUpgrade>();
-        }
-
-
-        // PlayerScanSkill
-        if (playerScanSkill == null)
-        {
-            playerScanSkill =
-                player.GetComponent<PlayerScanSkill>();
+            UpdateHealthUI();
+            UpdateSkillPointUI();
         }
     }
 
-
-    // =====================================================
-    // TOGGLE PANEL
-    // =====================================================
+    // =========================================================
+    // OPEN / CLOSE
+    // =========================================================
 
     private void ToggleUpgradePanel()
     {
-        if (upgradePanel == null)
-            return;
-
-
         isOpen = !isOpen;
 
-
-        upgradePanel.SetActive(isOpen);
-
+        if (upgradePanel != null)
+        {
+            upgradePanel.SetActive(isOpen);
+        }
 
         SetControlState(isOpen);
-
 
         if (isOpen)
         {
@@ -153,53 +87,48 @@ public class SkillUpgradeUI : MonoBehaviour
         }
     }
 
-
-    // =====================================================
+    // =========================================================
     // UPDATE ALL UI
-    // =====================================================
+    // =========================================================
 
-    public void UpdateAllUI()
+    private void UpdateAllUI()
     {
         UpdateSkillPointUI();
-
         UpdateHealthUI();
-
         UpdateScanRangeUI();
-
         UpdateScanCooldownUI();
     }
 
-
-    // =====================================================
-    // SKILL POINT UI
-    // =====================================================
+    // =========================================================
+    // SKILL POINT
+    // =========================================================
 
     private void UpdateSkillPointUI()
     {
         if (skillPointText == null)
             return;
 
-
         if (playerLevel == null)
             return;
-
 
         skillPointText.text =
             "Skill Point: " +
             playerLevel.SkillPoints;
     }
 
-
-    // =====================================================
-    // HEALTH UI
-    // =====================================================
+    // =========================================================
+    // HP
+    // =========================================================
 
     private void UpdateHealthUI()
     {
         if (playerSkillUpgrade == null)
             return;
 
+        if (playerController == null)
+            return;
 
+        // Level
         if (hpLevelText != null)
         {
             hpLevelText.text =
@@ -207,27 +136,34 @@ public class SkillUpgradeUI : MonoBehaviour
                 playerSkillUpgrade.HealthLevel;
         }
 
-
+        // Current HP / Max HP
         if (hpValueText != null)
         {
             hpValueText.text =
-                "+ " +
+                "HP: " +
+                Mathf.CeilToInt(playerController.CurrentHealth) +
+                " / " +
+                Mathf.CeilToInt(playerController.MaxHealth) +
+                "\n" +
+                "+" +
                 playerSkillUpgrade.HealthIncrease +
                 " Max HP";
         }
     }
 
-
-    // =====================================================
-    // SCAN RANGE UI
-    // =====================================================
+    // =========================================================
+    // SCAN RANGE
+    // =========================================================
 
     private void UpdateScanRangeUI()
     {
         if (playerSkillUpgrade == null)
             return;
 
+        if (playerScanSkill == null)
+            return;
 
+        // Level
         if (scanRangeLevelText != null)
         {
             scanRangeLevelText.text =
@@ -235,35 +171,31 @@ public class SkillUpgradeUI : MonoBehaviour
                 playerSkillUpgrade.ScanRangeLevel;
         }
 
-
+        // Current Range + Upgrade amount
         if (scanRangeValueText != null)
         {
-            if (playerScanSkill != null)
-            {
-                scanRangeValueText.text =
-                    "Range: " +
-                    playerScanSkill.GetScanRange()
-                    .ToString("F0");
-            }
-            else
-            {
-                scanRangeValueText.text =
-                    "Range: -";
-            }
+            scanRangeValueText.text =
+                "Range: " +
+                playerScanSkill.GetScanRange().ToString("F0") +
+                "\n+" +
+                playerSkillUpgrade.ScanRangeIncrease +
+                " Range";
         }
     }
 
-
-    // =====================================================
-    // SCAN COOLDOWN UI
-    // =====================================================
+    // =========================================================
+    // SCAN COOLDOWN
+    // =========================================================
 
     private void UpdateScanCooldownUI()
     {
         if (playerSkillUpgrade == null)
             return;
 
+        if (playerScanSkill == null)
+            return;
 
+        // Level
         if (scanCooldownLevelText != null)
         {
             scanCooldownLevelText.text =
@@ -271,123 +203,100 @@ public class SkillUpgradeUI : MonoBehaviour
                 playerSkillUpgrade.ScanCooldownLevel;
         }
 
-
+        // Current Cooldown + Upgrade amount
         if (scanCooldownValueText != null)
         {
-            if (playerScanSkill != null)
-            {
-                scanCooldownValueText.text =
-                    "Cooldown: " +
-                    playerScanSkill.GetCooldown()
-                    .ToString("F0") +
-                    "s";
-            }
-            else
-            {
-                scanCooldownValueText.text =
-                    "Cooldown: -";
-            }
+            scanCooldownValueText.text =
+                "Cooldown: " +
+                playerScanSkill.GetCooldown().ToString("F0") +
+                "s" +
+                "\n-" +
+                playerSkillUpgrade.ScanCooldownDecrease +
+                "s Cooldown";
         }
     }
 
+    // =========================================================
+    // UPGRADE HP
+    // =========================================================
 
-    // =====================================================
-    // BUTTON - HEALTH
-    // =====================================================
-
-    public void OnHealthUpgradeButton()
+    public void UpgradeHealth()
     {
         if (playerSkillUpgrade == null)
             return;
-
 
         playerSkillUpgrade.UpgradeHealth();
 
-
-        // อัปเดตทันที
         UpdateAllUI();
     }
 
+    // =========================================================
+    // UPGRADE SCAN RANGE
+    // =========================================================
 
-    // =====================================================
-    // BUTTON - SCAN RANGE
-    // =====================================================
-
-    public void OnScanRangeUpgradeButton()
+    public void UpgradeScanRange()
     {
         if (playerSkillUpgrade == null)
             return;
-
 
         playerSkillUpgrade.UpgradeScanRange();
 
-
-        // อัปเดตทันที
         UpdateAllUI();
     }
 
+    // =========================================================
+    // UPGRADE SCAN COOLDOWN
+    // =========================================================
 
-    // =====================================================
-    // BUTTON - SCAN COOLDOWN
-    // =====================================================
-
-    public void OnScanCooldownUpgradeButton()
+    public void UpgradeScanCooldown()
     {
         if (playerSkillUpgrade == null)
             return;
 
-
         playerSkillUpgrade.UpgradeScanCooldown();
 
-
-        // อัปเดตทันที
         UpdateAllUI();
     }
 
-
-    // =====================================================
-    // SET CONTROL STATE
-    // =====================================================
+    // =========================================================
+    // PLAYER CONTROL
+    // =========================================================
 
     private void SetControlState(bool uiOpen)
     {
-        // Player
         if (playerController != null)
         {
             playerController.SetUIOpen(uiOpen);
         }
 
+        // หา Gun
+        if (gun == null)
+        {
+            gun = FindFirstObjectByType<Gun>();
+        }
 
-        // Gun
-        Gun gun =
-            playerController != null
-                ? playerController.GetComponentInChildren<Gun>()
-                : null;
+        // หา GunHolder
+        if (gunHolder == null)
+        {
+            gunHolder = FindFirstObjectByType<GunHolder>();
+        }
 
-
+        // ปิด/เปิดการยิง
         if (gun != null)
         {
             gun.SetCanShoot(!uiOpen);
         }
 
-
-        // Gun Holder
-        GunHolder gunHolder =
-            playerController != null
-                ? playerController.GetComponentInChildren<GunHolder>()
-                : null;
-
-
+        // ปิด/เปิดการควบคุมปืน
         if (gunHolder != null)
         {
             gunHolder.SetCanControlGun(!uiOpen);
         }
     }
 
-
-    // =====================================================
+    // =========================================================
     // DESTROY
-    // =====================================================
+    // =========================================================
 
     private void OnDestroy()
     {

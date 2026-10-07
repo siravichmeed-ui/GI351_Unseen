@@ -111,7 +111,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Enemy
   scoreValue: 200
   maxHealth: 100
-  moveSpeed: 2
+  moveSpeed: 5
   detectionRange: 8
   stopDistance: 2
   attackRange: 2

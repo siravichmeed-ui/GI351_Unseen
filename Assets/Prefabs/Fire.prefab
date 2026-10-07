@@ -157,7 +157,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5e772a74d627d61478546fd357e1a50a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LightItem
-  lightAmount: 2
+  lightTimeAmount: 45
 --- !u!1 &3069495320747140213
 GameObject:
   m_ObjectHideFlags: 0

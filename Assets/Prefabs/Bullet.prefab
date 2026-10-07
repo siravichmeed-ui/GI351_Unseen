@@ -287,6 +287,9 @@ MonoBehaviour:
   audioSource: {fileID: 2113643432656284220}
   hitSound: {fileID: 8300000, guid: 6b6971de46726b3479345fe4675c69e1, type: 3}
   hitAnimationTime: 0.1
+  wallLayer:
+    serializedVersion: 2
+    m_Bits: 64
 --- !u!95 &3529939528626127634
 Animator:
   serializedVersion: 7
