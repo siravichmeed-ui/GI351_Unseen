@@ -98,6 +98,7 @@ public class EnemySpawner : MonoBehaviour
             PlayerController playerController =
                 FindFirstObjectByType<PlayerController>();
 
+
             if (playerController != null)
             {
                 player =
@@ -110,7 +111,8 @@ public class EnemySpawner : MonoBehaviour
         SpawnInitialLightItems();
 
 
-        // อนุญาตให้ Guaranteed Spawn ได้เร็ว ๆ
+        // ให้ระบบ Guaranteed Enemy
+        // เริ่มตรวจหลังจาก 3 วินาที
         nextGuaranteedSpawnTime =
             Time.time + 3f;
     }
@@ -122,7 +124,7 @@ public class EnemySpawner : MonoBehaviour
 
     private void Update()
     {
-        // Enemy Spawn
+        // Enemy Spawn ปกติ
         UpdateEnemySpawner();
 
 
@@ -136,7 +138,7 @@ public class EnemySpawner : MonoBehaviour
 
 
     // =====================================================
-    // ENEMY SPAWNER
+    // NORMAL ENEMY SPAWNER
     // =====================================================
 
     private void UpdateEnemySpawner()
@@ -180,10 +182,12 @@ public class EnemySpawner : MonoBehaviour
         }
 
 
-        // ถ้า Enemy ทั้งแมพเต็มแล้ว
+        // จำนวน Enemy ทั้งหมด
         int currentEnemyCount =
             GetCurrentEnemyCount();
 
+
+        // ถ้า Enemy เต็มแล้ว
         if (
             currentEnemyCount >=
             maxEnemies
@@ -193,12 +197,16 @@ public class EnemySpawner : MonoBehaviour
         }
 
 
-        // นับ Enemy ที่อยู่ใกล้ Player
+        // นับ Enemy ใกล้ Player
         int nearbyEnemyCount =
             GetNearbyEnemyCount();
 
 
-        // ถ้ามี Enemy ใกล้พอแล้ว
+        // =================================================
+        // ถ้ามี Enemy ใกล้ Player แล้ว
+        // ไม่ต้อง Spawn
+        // =================================================
+
         if (
             nearbyEnemyCount >=
             minimumNearbyEnemies
@@ -208,7 +216,10 @@ public class EnemySpawner : MonoBehaviour
         }
 
 
-        // ยังไม่ถึงเวลาส่ง Enemy เพิ่ม
+        // =================================================
+        // Cooldown
+        // =================================================
+
         if (
             Time.time <
             nextGuaranteedSpawnTime
@@ -219,7 +230,7 @@ public class EnemySpawner : MonoBehaviour
 
 
         // =================================================
-        // คำนวณจำนวน Enemy ที่ต้องเพิ่ม
+        // คำนวณจำนวนที่ต้อง Spawn
         // =================================================
 
         int enemiesNeeded =
@@ -227,7 +238,7 @@ public class EnemySpawner : MonoBehaviour
             nearbyEnemyCount;
 
 
-        // จำกัดไม่ให้ส่งเกินจำนวนที่กำหนด
+        // จำกัดสูงสุดตาม Guaranteed Spawn Amount
         int spawnAmount =
             Mathf.Min(
                 enemiesNeeded,
@@ -235,7 +246,7 @@ public class EnemySpawner : MonoBehaviour
             );
 
 
-        // จำกัดด้วย Max Enemies
+        // จำกัดตามจำนวนที่เหลือใน Max Enemies
         int availableEnemySlots =
             maxEnemies -
             currentEnemyCount;
@@ -262,6 +273,7 @@ public class EnemySpawner : MonoBehaviour
 
         int spawnedAmount = 0;
 
+
         for (
             int i = 0;
             i < spawnAmount;
@@ -277,7 +289,10 @@ public class EnemySpawner : MonoBehaviour
         }
 
 
-        // ตั้ง Cooldown ใหม่
+        // =================================================
+        // ตั้ง Cooldown
+        // =================================================
+
         if (
             spawnedAmount > 0
         )
@@ -386,7 +401,7 @@ public class EnemySpawner : MonoBehaviour
 
 
         // =================================================
-        // หาจุด Spawn ที่เหมาะกับ Player
+        // หาจุด Spawn ที่อยู่ในระยะ
         // =================================================
 
         List<Transform> validSpawnPoints =
@@ -416,7 +431,7 @@ public class EnemySpawner : MonoBehaviour
                 );
 
 
-            // ต้องไม่ใกล้เกินไป
+            // ใกล้เกินไป
             if (
                 distance <
                 minimumSpawnDistance
@@ -426,7 +441,7 @@ public class EnemySpawner : MonoBehaviour
             }
 
 
-            // ต้องไม่ไกลเกินไป
+            // ไกลเกินไป
             if (
                 distance >
                 maximumSpawnDistance
@@ -442,7 +457,7 @@ public class EnemySpawner : MonoBehaviour
         }
 
 
-        // ไม่มี Spawn Point ที่เหมาะสม
+        // ไม่มีจุดที่เหมาะสม
         if (
             validSpawnPoints.Count == 0
         )
@@ -486,18 +501,33 @@ public class EnemySpawner : MonoBehaviour
 
 
         // =================================================
-        // สร้าง Enemy
+        // Spawn Enemy
         // =================================================
 
-        Instantiate(
-            selectedEnemy,
-            selectedSpawnPoint.position,
-            Quaternion.identity
-        );
+        GameObject newEnemy =
+            Instantiate(
+                selectedEnemy,
+                selectedSpawnPoint.position,
+                Quaternion.identity
+            );
+
+
+        // =================================================
+        // บังคับให้ Enemy เห็น Player ทันที
+        // =================================================
+
+        Enemy enemy =
+            newEnemy.GetComponent<Enemy>();
+
+
+        if (enemy != null)
+        {
+            enemy.ForceDetectPlayer();
+        }
 
 
         Debug.Log(
-            "Guaranteed Enemy Spawned Near Player"
+            "Guaranteed Enemy Spawned -> Player"
         );
 
 
@@ -537,10 +567,7 @@ public class EnemySpawner : MonoBehaviour
         }
 
 
-        // =================================================
         // สุ่ม Enemy
-        // =================================================
-
         int randomEnemyIndex =
             Random.Range(
                 0,
@@ -554,10 +581,7 @@ public class EnemySpawner : MonoBehaviour
             ];
 
 
-        // =================================================
         // สุ่ม Spawn Point
-        // =================================================
-
         int randomSpawnIndex =
             Random.Range(
                 0,
@@ -576,19 +600,16 @@ public class EnemySpawner : MonoBehaviour
         )
         {
             Debug.LogWarning(
-                "Enemy Spawn Point index "
-                + randomSpawnIndex
-                + " ยังไม่ได้ใส่ Transform"
+                "Enemy Spawn Point index " +
+                randomSpawnIndex +
+                " ยังไม่ได้ใส่ Transform"
             );
 
             return;
         }
 
 
-        // =================================================
         // สร้าง Enemy
-        // =================================================
-
         Instantiate(
             selectedEnemy,
             selectedSpawnPoint.position,
@@ -671,9 +692,6 @@ public class EnemySpawner : MonoBehaviour
         CleanupDestroyedLightItems();
 
 
-        // ถ้า Item หายไป
-        // ให้สร้างใหม่จนกว่าจะครบจำนวนสูงสุด
-
         while (
             spawnedLightItems.Count <
             maxLightItems
@@ -711,10 +729,6 @@ public class EnemySpawner : MonoBehaviour
             return false;
         }
 
-
-        // =================================================
-        // หาจุดที่ยังไม่มี Item
-        // =================================================
 
         List<Transform> availablePoints =
             new List<Transform>();
@@ -760,10 +774,6 @@ public class EnemySpawner : MonoBehaviour
         }
 
 
-        // =================================================
-        // สุ่มจุด
-        // =================================================
-
         int randomIndex =
             Random.Range(
                 0,
@@ -776,10 +786,6 @@ public class EnemySpawner : MonoBehaviour
                 randomIndex
             ];
 
-
-        // =================================================
-        // Spawn
-        // =================================================
 
         GameObject newItem =
             Instantiate(
@@ -875,10 +881,6 @@ public class EnemySpawner : MonoBehaviour
         Vector3 dropPosition
     )
     {
-        // =================================================
-        // ไม่มี Potion Prefab
-        // =================================================
-
         if (
             healthPotionPrefab == null
         )
@@ -891,20 +893,12 @@ public class EnemySpawner : MonoBehaviour
         }
 
 
-        // =================================================
-        // สุ่มโอกาส
-        // =================================================
-
         float randomValue =
             Random.Range(
                 0f,
                 100f
             );
 
-
-        // =================================================
-        // ไม่ผ่านโอกาสดรอป
-        // =================================================
 
         if (
             randomValue >
@@ -914,10 +908,6 @@ public class EnemySpawner : MonoBehaviour
             return;
         }
 
-
-        // =================================================
-        // Spawn Potion
-        // =================================================
 
         Instantiate(
             healthPotionPrefab,

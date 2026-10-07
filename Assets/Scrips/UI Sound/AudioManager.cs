@@ -4,41 +4,51 @@ public class AudioManager : MonoBehaviour
 {
     public static AudioManager Instance;
 
-    [Header("Audio Sources")]
-    public AudioSource musicSource;
-    public AudioSource sfxSource;
+    [Header("Audio Source")]
+    [SerializeField] private AudioSource musicSource;
+    [SerializeField] private AudioSource sfxSource;
 
-    [Header("Music")]
+    [Header("Volume")]
     [Range(0f, 1f)]
-    public float musicVolume = 1f;
+    [SerializeField] private float musicVolume = 1f;
 
-    [Header("SFX")]
     [Range(0f, 1f)]
-    public float sfxVolume = 1f;
+    [SerializeField] private float sfxVolume = 1f;
 
     private void Awake()
     {
         if (Instance == null)
         {
             Instance = this;
-            DontDestroyOnLoad(gameObject);
         }
         else
         {
             Destroy(gameObject);
-            return;
         }
     }
 
     private void Start()
     {
-        musicSource.volume = musicVolume;
-        sfxSource.volume = sfxVolume;
+        if (musicSource != null)
+        {
+            musicSource.volume = musicVolume;
+        }
+
+        if (sfxSource != null)
+        {
+            sfxSource.volume = sfxVolume;
+        }
     }
 
-    // เล่นเพลง
+    // =========================
+    // MUSIC
+    // =========================
+
     public void PlayMusic(AudioClip clip)
     {
+        if (musicSource == null)
+            return;
+
         if (clip == null)
             return;
 
@@ -47,20 +57,36 @@ public class AudioManager : MonoBehaviour
         musicSource.Play();
     }
 
-    // เล่นเสียง Effect
-    public void PlaySFX(AudioClip clip)
+    public void StopMusic()
     {
-        if (clip == null)
+        if (musicSource == null)
             return;
-    
-       sfxSource.PlayOneShot(clip);
+
+        musicSource.Stop();
+        musicSource.clip = null;
     }
 
-    // ปรับเสียงเพลง
+    // =========================
+    // SFX
+    // =========================
+
+    public void PlaySFX(AudioClip clip)
+    {
+        if (sfxSource == null)
+            return;
+
+        if (clip == null)
+            return;
+
+        sfxSource.PlayOneShot(clip);
+    }
+
+    // =========================
+    // VOLUME
+    // =========================
+
     public void SetMusicVolume(float value)
     {
-        Debug.Log("Slider Value = " + value);
-
         musicVolume = value;
 
         if (musicSource != null)
@@ -69,10 +95,13 @@ public class AudioManager : MonoBehaviour
         }
     }
 
-    // ปรับเสียง Effect
     public void SetSFXVolume(float value)
     {
         sfxVolume = value;
-        sfxSource.volume = value;
+
+        if (sfxSource != null)
+        {
+            sfxSource.volume = value;
+        }
     }
 }

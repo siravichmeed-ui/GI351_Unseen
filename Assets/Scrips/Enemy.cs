@@ -3,6 +3,10 @@ using UnityEngine;
 
 public class Enemy : MonoBehaviour
 {
+    // =====================================================
+    // SPRITE FACING
+    // =====================================================
+
     public enum SpriteFacing
     {
         Right,
@@ -11,14 +15,25 @@ public class Enemy : MonoBehaviour
         Down
     }
 
+
+    // =====================================================
+    // MOVE STATE
+    // =====================================================
+
     private enum MoveState
     {
         Chasing,
         WallFollowing
     }
 
+
+    // =====================================================
+    // SCORE
+    // =====================================================
+
     [Header("Score")]
     [SerializeField] private int scoreValue = 100;
+
 
     // =====================================================
     // HEALTH
@@ -99,6 +114,7 @@ public class Enemy : MonoBehaviour
 
     private bool isDead = false;
 
+
     // =====================================================
     // SOUND
     // =====================================================
@@ -107,15 +123,21 @@ public class Enemy : MonoBehaviour
     [SerializeField] private AudioSource audioSource;
 
     [SerializeField] private AudioClip detectSound;
+
     [SerializeField] private AudioClip attackSound;
+
     [SerializeField] private AudioClip hitSound;
+
     [SerializeField] private AudioClip deathSound;
+
 
     [Header("Movement Sound")]
     [SerializeField] private AudioClip moveSound;
+
     [SerializeField] private float moveSoundInterval = 0.5f;
 
     private float nextMoveSoundTime;
+
 
     // =====================================================
     // ATTACK ANIMATION
@@ -198,6 +220,12 @@ public class Enemy : MonoBehaviour
     private bool isAttacking = false;
 
     private bool hasAttackHit = false;
+
+
+    // =====================================================
+    // SOUND
+    // =====================================================
+
     private void PlaySound(AudioClip clip)
     {
         if (audioSource == null)
@@ -208,6 +236,7 @@ public class Enemy : MonoBehaviour
 
         audioSource.PlayOneShot(clip);
     }
+
 
     // =====================================================
     // START
@@ -283,6 +312,10 @@ public class Enemy : MonoBehaviour
 
     private void Update()
     {
+        if (isDead)
+            return;
+
+
         DetectPlayer();
 
         FacePlayer();
@@ -297,15 +330,23 @@ public class Enemy : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (isDead)
+            return;
+
+
         MoveTowardsPlayer();
 
-        if (hasDetectedPlayer &&
-        !isAttacking &&
-        Time.time >= nextMoveSoundTime &&
-        rb != null &&
-        rb.linearVelocity.magnitude > 0.1f)
+
+        if (
+            hasDetectedPlayer &&
+            !isAttacking &&
+            Time.time >= nextMoveSoundTime &&
+            rb != null &&
+            rb.linearVelocity.magnitude > 0.1f
+        )
         {
             PlaySound(moveSound);
+
 
             nextMoveSoundTime =
                 Time.time + moveSoundInterval;
@@ -334,11 +375,16 @@ public class Enemy : MonoBehaviour
             );
 
 
-        if (distanceToPlayer <=
-            detectionRange)
+        if (
+            distanceToPlayer <=
+            detectionRange
+        )
         {
             hasDetectedPlayer =
                 true;
+
+
+            PlaySound(detectSound);
 
 
             Debug.Log(
@@ -350,13 +396,63 @@ public class Enemy : MonoBehaviour
 
 
     // =====================================================
+    // FORCE DETECT PLAYER
+    // =====================================================
+
+    public void ForceDetectPlayer()
+    {
+        if (isDead)
+            return;
+
+
+        if (player == null)
+        {
+            GameObject playerObject =
+                GameObject.FindGameObjectWithTag(
+                    "Player"
+                );
+
+
+            if (playerObject != null)
+            {
+                player =
+                    playerObject.transform;
+            }
+        }
+
+
+        if (player == null)
+            return;
+
+
+        if (hasDetectedPlayer)
+            return;
+
+
+        hasDetectedPlayer =
+            true;
+
+
+        PlaySound(detectSound);
+
+
+        Debug.Log(
+            gameObject.name +
+            " FORCE DETECTED PLAYER!"
+        );
+    }
+
+
+    // =====================================================
     // MOVE
     // =====================================================
 
     private void MoveTowardsPlayer()
     {
-        if (player == null ||
-            rb == null)
+        if (
+            player == null ||
+            rb == null
+        )
         {
             return;
         }
@@ -389,8 +485,10 @@ public class Enemy : MonoBehaviour
             toPlayer.magnitude;
 
 
-        if (distanceToPlayer <=
-            stopDistance)
+        if (
+            distanceToPlayer <=
+            stopDistance
+        )
         {
             rb.linearVelocity =
                 Vector2.zero;
@@ -410,9 +508,11 @@ public class Enemy : MonoBehaviour
             );
 
 
-        if (enableZigzag &&
+        if (
+            enableZigzag &&
             moveState ==
-            MoveState.Chasing)
+            MoveState.Chasing
+        )
         {
             finalDirection =
                 ApplyZigzag(
@@ -480,8 +580,10 @@ public class Enemy : MonoBehaviour
             return;
 
 
-        if (Time.time <
-            nextAttackTime)
+        if (
+            Time.time <
+            nextAttackTime
+        )
         {
             return;
         }
@@ -494,8 +596,10 @@ public class Enemy : MonoBehaviour
             );
 
 
-        if (distanceToPlayer <=
-            attackRange)
+        if (
+            distanceToPlayer <=
+            attackRange
+        )
         {
             TryAttack(
                 player.gameObject
@@ -547,8 +651,10 @@ public class Enemy : MonoBehaviour
         }
 
 
-        if (moveState ==
-            MoveState.Chasing)
+        if (
+            moveState ==
+            MoveState.Chasing
+        )
         {
             Vector2 normal =
                 losHit.normal;
@@ -601,10 +707,12 @@ public class Enemy : MonoBehaviour
             );
 
 
-        if (hit.collider == null ||
+        if (
+            hit.collider == null ||
             !hit.collider.CompareTag(
                 wallTag
-            ))
+            )
+        )
         {
             return desiredDirection;
         }
@@ -619,8 +727,10 @@ public class Enemy : MonoBehaviour
             hit.normal;
 
 
-        if (slideDirection.sqrMagnitude <
-            0.0001f)
+        if (
+            slideDirection.sqrMagnitude <
+            0.0001f
+        )
         {
             slideDirection =
                 new Vector2(
@@ -650,10 +760,12 @@ public class Enemy : MonoBehaviour
             );
 
 
-        if (hit.collider == null ||
+        if (
+            hit.collider == null ||
             !hit.collider.CompareTag(
                 wallTag
-            ))
+            )
+        )
         {
             hit =
                 Physics2D.Raycast(
@@ -664,10 +776,12 @@ public class Enemy : MonoBehaviour
         }
 
 
-        if (hit.collider == null ||
+        if (
+            hit.collider == null ||
             !hit.collider.CompareTag(
                 wallTag
-            ))
+            )
+        )
         {
             moveState =
                 MoveState.Chasing;
@@ -694,10 +808,12 @@ public class Enemy : MonoBehaviour
             );
 
 
-        if (tangentHit.collider != null &&
+        if (
+            tangentHit.collider != null &&
             tangentHit.collider.CompareTag(
                 wallTag
-            ))
+            )
+        )
         {
             tangent =
                 (
@@ -719,8 +835,10 @@ public class Enemy : MonoBehaviour
         Vector2 direction
     )
     {
-        if (direction.sqrMagnitude <
-            0.0001f)
+        if (
+            direction.sqrMagnitude <
+            0.0001f
+        )
         {
             return direction;
         }
@@ -777,22 +895,27 @@ public class Enemy : MonoBehaviour
             transform.position.x;
 
 
-        if (Mathf.Abs(directionX) <=
-            0.01f)
+        if (
+            Mathf.Abs(directionX) <=
+            0.01f
+        )
         {
             return;
         }
 
 
-        if (spriteFacing ==
-            SpriteFacing.Right)
+        if (
+            spriteFacing ==
+            SpriteFacing.Right
+        )
         {
             spriteRenderer.flipX =
                 directionX < 0f;
         }
         else if (
             spriteFacing ==
-            SpriteFacing.Left)
+            SpriteFacing.Left
+        )
         {
             spriteRenderer.flipX =
                 directionX > 0f;
@@ -821,8 +944,10 @@ public class Enemy : MonoBehaviour
             return;
 
 
-        if (Time.time <
-            nextAttackTime)
+        if (
+            Time.time <
+            nextAttackTime
+        )
         {
             return;
         }
@@ -843,15 +968,19 @@ public class Enemy : MonoBehaviour
             );
 
 
-        if (distanceToPlayer >
-            attackRange)
+        if (
+            distanceToPlayer >
+            attackRange
+        )
         {
             return;
         }
 
 
-        if (useAttackAnimation &&
-            animator != null)
+        if (
+            useAttackAnimation &&
+            animator != null
+        )
         {
             StartAttack();
         }
@@ -889,7 +1018,9 @@ public class Enemy : MonoBehaviour
                 Vector2.zero;
         }
 
+
         PlaySound(attackSound);
+
 
         animator.ResetTrigger(
             attackTriggerName
@@ -927,8 +1058,10 @@ public class Enemy : MonoBehaviour
             );
 
 
-        if (distanceToPlayer >
-            attackRange)
+        if (
+            distanceToPlayer >
+            attackRange
+        )
         {
             return;
         }
@@ -1059,9 +1192,11 @@ public class Enemy : MonoBehaviour
         if (damage <= 0f)
             return;
 
+
         // ถ้าตายแล้ว ไม่รับ Damage อีก
         if (isDead)
             return;
+
 
         currentHealth -=
             damage;
@@ -1083,6 +1218,7 @@ public class Enemy : MonoBehaviour
         );
 
 
+        // Hit Flash
         if (hitFlashCoroutine != null)
         {
             StopCoroutine(
@@ -1096,6 +1232,10 @@ public class Enemy : MonoBehaviour
                 HitFlash()
             );
 
+
+        // =================================================
+        // DEATH
+        // =================================================
 
         if (currentHealth <= 0f)
         {
@@ -1121,6 +1261,11 @@ public class Enemy : MonoBehaviour
         yield return new WaitForSeconds(
             flashDuration
         );
+
+
+        // ถ้าตายแล้ว ไม่ต้องเปลี่ยนกลับ
+        if (isDead)
+            yield break;
 
 
         spriteRenderer.color =
@@ -1153,8 +1298,10 @@ public class Enemy : MonoBehaviour
         EnemyLightZone lightZone
     )
     {
-        if (currentLightZone ==
-            lightZone)
+        if (
+            currentLightZone ==
+            lightZone
+        )
         {
             currentLightZone =
                 null;
@@ -1170,9 +1317,11 @@ public class Enemy : MonoBehaviour
         Collision2D collision
     )
     {
-        if (!collision.gameObject.CompareTag(
-            "Player"
-        ))
+        if (
+            !collision.gameObject.CompareTag(
+                "Player"
+            )
+        )
         {
             return;
         }
@@ -1185,9 +1334,11 @@ public class Enemy : MonoBehaviour
         Collision2D collision
     )
     {
-        if (!collision.gameObject.CompareTag(
-            "Player"
-        ))
+        if (
+            !collision.gameObject.CompareTag(
+                "Player"
+            )
+        )
         {
             return;
         }
@@ -1212,15 +1363,21 @@ public class Enemy : MonoBehaviour
             return;
         }
 
+
         if (expOrbAmount <= 0)
             return;
 
 
-        for (int i = 0; i < expOrbAmount; i++)
+        for (
+            int i = 0;
+            i < expOrbAmount;
+            i++
+        )
         {
             // สุ่มทิศทางรอบตัว
             Vector2 randomDirection =
                 Random.insideUnitCircle.normalized;
+
 
             // สุ่มระยะกระจาย
             float randomDistance =
@@ -1276,7 +1433,9 @@ public class Enemy : MonoBehaviour
         if (isDead)
             return;
 
+
         isDead = true;
+
 
         // =================================================
         // ADD SCORE
@@ -1284,9 +1443,17 @@ public class Enemy : MonoBehaviour
 
         if (ScoreManager.Instance != null)
         {
-            ScoreManager.Instance.AddScore(scoreValue);
+            ScoreManager.Instance.AddScore(
+                scoreValue
+            );
+
             ScoreManager.Instance.AddEnemyDefeated();
         }
+
+
+        // =================================================
+        // REMOVE FROM LIGHT ZONE
+        // =================================================
 
         if (currentLightZone != null)
         {
@@ -1297,11 +1464,18 @@ public class Enemy : MonoBehaviour
             currentLightZone = null;
         }
 
-        // ดรอป EXP
+
+        // =================================================
+        // DROP EXP
+        // =================================================
+
         DropExp();
 
 
-        // ดรอป Health Potion
+        // =================================================
+        // DROP HEALTH POTION
+        // =================================================
+
         EnemySpawner enemySpawner =
             FindFirstObjectByType<EnemySpawner>();
 
@@ -1312,15 +1486,13 @@ public class Enemy : MonoBehaviour
                 transform.position
             );
         }
-        // เล่นเสียงตาย
-        PlaySound(deathSound);
 
-        // รอเสียงแล้วค่อยทำลาย
-        Destroy(
-            gameObject,
-            deathSound != null
-                ? deathSound.length
-                : 0f);
+
+        // =================================================
+        // DESTROY IMMEDIATELY
+        // =================================================
+
+        Destroy(gameObject);
     }
 
 
